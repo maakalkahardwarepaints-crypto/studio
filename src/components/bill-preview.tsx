@@ -11,8 +11,8 @@ interface BillPreviewProps {
 const DISCLAIMER_THRESHOLD = 80000;
 
 export function BillPreview({ bill }: BillPreviewProps) {
-  const subtotal = bill.items.reduce((acc, item) => acc + (item.quantity || 0) * (item.rate || 0), 0);
-  const discountAmount = subtotal * ((bill.discount || 0) / 100);
+  const subtotal = bill.items.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
+  const discountAmount = subtotal * ((Number(bill.discount) || 0) / 100);
   const totalAmount = subtotal - discountAmount;
 
   return (
@@ -54,12 +54,14 @@ export function BillPreview({ bill }: BillPreviewProps) {
         </TableHeader>
         <TableBody>
           {bill.items.map((item, index) => {
-            const amount = item.quantity * item.rate;
+            const quantity = Number(item.quantity) || 0;
+            const rate = Number(item.rate) || 0;
+            const amount = quantity * rate;
             return (
               <TableRow key={index}>
                 <TableCell className="font-medium">{item.itemName}</TableCell>
-                <TableCell className="text-right">{item.quantity.toLocaleString()}</TableCell>
-                <TableCell className="text-right">₹{item.rate.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{quantity.toLocaleString()}</TableCell>
+                <TableCell className="text-right">₹{rate.toFixed(2)}</TableCell>
                 <TableCell className="text-right">₹{amount.toFixed(2)}</TableCell>
               </TableRow>
             );
