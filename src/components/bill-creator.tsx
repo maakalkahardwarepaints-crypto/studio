@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BillFormValues, billFormSchema } from "@/lib/schemas";
@@ -38,14 +38,18 @@ import { useUser, useAuth } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 
 export function BillCreator() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [summary, setSummary] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
@@ -93,6 +97,29 @@ export function BillCreator() {
   const discountAmount = subtotal * ((parseFloat(String(watchDiscount)) || 0) / 100);
   const totalAmount = subtotal - discountAmount;
 
+  const handleDownloadPdf = async () => {
+    const element = printRef.current;
+    if (!element) {
+      toast({ title: "Error", description: "Could not find bill to print.", variant: "destructive" });
+      return;
+    }
+
+    setIsDownloadingPdf(true);
+    const canvas = await html2canvas(element, {
+      scale: 2, // Higher scale for better quality
+    });
+    const data = canvas.toDataURL("image/png");
+
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "px",
+      format: [canvas.width, canvas.height],
+    });
+
+    pdf.addImage(data, "PNG", 0, 0, canvas.width, canvas.height);
+    pdf.save(`bill-${form.getValues("billNumber")}.pdf`);
+    setIsDownloadingPdf(false);
+  };
 
   const handleGenerateSummary = async () => {
     const isValid = await form.trigger();
@@ -342,7 +369,10 @@ export function BillCreator() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onSelect={() => toast({title: "Coming Soon!", description: "PDF sharing will be available soon."})}>As PDF</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleDownloadPdf} disabled={isDownloadingPdf}>
+                  {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                  Download as PDF
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => toast({title: "Coming Soon!", description: "Excel sharing will be available soon."})}>As Excel</DropdownMenuItem>
                  <DropdownMenuItem onSelect={() => toast({title: "Coming Soon!", description: "WhatsApp sharing will be available soon."})}>Via WhatsApp</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => toast({title: "Coming Soon!", description: "Email sharing will be available soon."})}>Via Email</DropdownMenuItem>
@@ -393,6 +423,13 @@ export function BillCreator() {
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+        {/* Printable Bill Preview */}
+        <div className="absolute -z-50 left-[-10000px] top-0">
+          <div ref={printRef}>
+              <BillPreview bill={form.getValues()} />
+          </div>
+        </div>
       </form>
     </FormProvider>
   );
