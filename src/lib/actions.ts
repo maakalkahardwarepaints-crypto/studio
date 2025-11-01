@@ -8,9 +8,21 @@ import {
   doc,
   serverTimestamp,
   setDoc,
+  getFirestore,
 } from 'firebase/firestore';
-import { getFirestore } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { firebaseConfig } from '@/firebase/config';
+
+// Helper function for server-side Firebase initialization
+function initializeServerFirebase() {
+    if (!getApps().length) {
+        // When on the server, we can't rely on the automatic SDK configuration
+        // that App Hosting provides on the client. We must use the config object.
+        return initializeApp(firebaseConfig, `server-${new Date().getTime()}`);
+    }
+    return getApp(`server-${new Date().getTime()}`);
+}
+
 
 export async function getBillSummaryAction(
   data: BillFormValues
@@ -23,10 +35,10 @@ export async function getBillSummaryAction(
   const billData = validation.data;
 
   try {
-    const totalAmount = billData.items.reduce(
-      (acc, item) => acc + item.quantity * item.rate,
-      0
-    );
+    const subtotal = billData.items.reduce(
+      (acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
+    const discountAmount = subtotal * ((Number(billData.discount) || 0) / 100);
+    const totalAmount = subtotal - discountAmount;
 
     const summaryInput = {
       sellerName: billData.sellerName,
@@ -35,8 +47,10 @@ export async function getBillSummaryAction(
       date: billData.date.toLocaleDateString(),
       totalAmount,
       items: billData.items.map((item) => ({
-        ...item,
-        amount: item.quantity * item.rate,
+        itemName: item.itemName,
+        quantity: Number(item.quantity) || 0,
+        rate: Number(item.rate) || 0,
+        amount: (Number(item.quantity) || 0) * (Number(item.rate) || 0),
       })),
     };
 
@@ -57,14 +71,16 @@ export async function saveBillAction(
     console.error(validation.error.flatten().fieldErrors);
     return { error: 'Invalid form data.' };
   }
-
-  const { firestore } = initializeFirebase();
+  
+  const serverApp = initializeServerFirebase();
+  const firestore = getFirestore(serverApp);
 
   const billData = validation.data;
-  const totalAmount = billData.items.reduce(
-    (acc, item) => acc + (item.quantity || 0) * (item.rate || 0),
-    0
-  );
+  
+  const subtotal = billData.items.reduce(
+      (acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
+  const discountAmount = subtotal * ((Number(billData.discount) || 0) / 100);
+  const totalAmount = subtotal - discountAmount;
 
   try {
     const userBillsCollection = collection(
@@ -73,25 +89,42 @@ export async function saveBillAction(
     );
     const newBillRef = doc(userBillsCollection);
 
-    const billPayload = {
+    // Create a plain object from the form data to send to Firestore
+    const billPayload: any = {
       id: newBillRef.id,
-      ...billData,
+      sellerName: billData.sellerName,
+      sellerAddress: billData.sellerAddress,
+      clientName: billData.clientName,
+      clientAddress: billData.clientAddress,
+      billNumber: billData.billNumber,
+      date: billData.date, // Firestore can handle Date objects
       totalAmount,
+      discount: billData.discount || 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
+    
+    // Add optional fields only if they have a value
+    if (billData.sellerShopNumber) billPayload.sellerShopNumber = billData.sellerShopNumber;
+    if (billData.sellerOwnerNumber) billPayload.sellerOwnerNumber = billData.sellerOwnerNumber;
+
 
     await setDoc(newBillRef, billPayload);
 
     // Save items as a subcollection
     const itemsCollection = collection(newBillRef, 'items');
     for (const item of billData.items) {
-      await addDoc(itemsCollection, item);
+      const itemData = {
+        itemName: item.itemName,
+        quantity: Number(item.quantity) || 0,
+        rate: Number(item.rate) || 0,
+      };
+      await addDoc(itemsCollection, itemData);
     }
 
     return { billId: newBillRef.id };
-  } catch (e) {
+  } catch (e: any) {
     console.error('Failed to save bill:', e);
-    return { error: 'Failed to save bill. Please try again.' };
+    return { error: `Failed to save bill. Please try again. ${e.message}` };
   }
 }
