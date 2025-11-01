@@ -82,8 +82,8 @@ export function BillCreator() {
 
   const watchItems = form.watch("items");
   const totalAmount = watchItems.reduce((acc, current) => {
-    const quantity = typeof current.quantity === 'number' ? current.quantity : 0;
-    const rate = typeof current.rate === 'number' ? current.rate : 0;
+    const quantity = parseFloat(String(current.quantity)) || 0;
+    const rate = parseFloat(String(current.rate)) || 0;
     return acc + quantity * rate;
   }, 0);
 
@@ -257,7 +257,9 @@ export function BillCreator() {
                 <TableBody>
                   {fields.map((field, index) => {
                     const item = watchItems[index];
-                    const amount = (item?.quantity || 0) * (item?.rate || 0);
+                    const quantity = parseFloat(String(item?.quantity)) || 0;
+                    const rate = parseFloat(String(item?.rate)) || 0;
+                    const amount = quantity * rate;
                     return (
                       <TableRow key={field.id}>
                         <TableCell><FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (<Input placeholder="E.g. T-Shirt" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
@@ -360,3 +362,5 @@ export function BillCreator() {
     </FormProvider>
   );
 }
+
+    
