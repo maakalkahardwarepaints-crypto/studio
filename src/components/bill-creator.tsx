@@ -70,7 +70,7 @@ export function BillCreator() {
       clientAddress: "",
       billNumber: `BILL-${new Date().getTime()}`,
       date: new Date(),
-      items: [{ itemName: "", quantity: 1, rate: 0 }],
+      items: [{ itemName: "", quantity: 1, rate: 0, cost: 0 }],
       discount: 0,
     },
     mode: "onBlur",
@@ -256,6 +256,7 @@ export function BillCreator() {
                   <TableRow>
                     <TableHead className="min-w-[250px]">Item Name</TableHead>
                     <TableHead>Quantity</TableHead>
+                    <TableHead>Cost</TableHead>
                     <TableHead>Rate</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="w-[50px] text-right">Action</TableHead>
@@ -271,6 +272,7 @@ export function BillCreator() {
                       <TableRow key={field.id}>
                         <TableCell><FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (<Input placeholder="E.g. T-Shirt" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (<Input type="number" placeholder="10.00" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (<Input type="number" placeholder="15.00" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell className="text-right font-medium">₹{amount.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
@@ -284,7 +286,7 @@ export function BillCreator() {
                 </TableBody>
               </Table>
             </div>
-            <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ itemName: "", quantity: 1, rate: 0 })}>
+            <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ itemName: "", quantity: 1, rate: 0, cost: 0 })}>
               <Plus className="mr-2 h-4 w-4" /> Add Item
             </Button>
             {form.formState.errors.items && <p className="text-sm font-medium text-destructive mt-2">{form.formState.errors.items.root?.message}</p>}
@@ -363,7 +365,10 @@ export function BillCreator() {
         <AlertDialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
             <AlertDialogContent className="max-w-4xl p-0 border-0">
                 <AlertDialogHeader className="p-6 pb-0">
-                  <AlertDialogTitle>Bill Preview</AlertDialogTitle>
+                    <AlertDialogTitle>Bill Preview</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        A preview of how your bill will appear.
+                    </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="px-6">
                   <BillPreview bill={form.getValues()} />

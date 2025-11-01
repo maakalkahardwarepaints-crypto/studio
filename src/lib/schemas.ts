@@ -4,6 +4,7 @@ export const billItemSchema = z.object({
   itemName: z.string().min(1, "Item name is required."),
   quantity: z.coerce.number().min(0.01, "Quantity must be positive."),
   rate: z.coerce.number().min(0, "Rate must be non-negative."),
+  cost: z.coerce.number().min(0, "Cost must be non-negative."),
 });
 
 export const billFormSchema = z.object({

@@ -78,7 +78,11 @@
         },
         "rate": {
           "type": "number",
-          "description": "Rate of the item."
+          "description": "Rate (selling price) of the item."
+        },
+        "cost": {
+            "type": "number",
+            "description": "Cost of the item."
         },
         "amount": {
           "type": "number",
@@ -90,6 +94,7 @@
         "name",
         "quantity",
         "rate",
+        "cost",
         "amount"
       ]
     },

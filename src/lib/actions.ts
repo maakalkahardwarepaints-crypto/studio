@@ -15,12 +15,15 @@ import { firebaseConfig } from '@/firebase/config';
 
 // Helper function for server-side Firebase initialization
 function initializeServerFirebase() {
-    if (!getApps().length) {
-        // When on the server, we can't rely on the automatic SDK configuration
-        // that App Hosting provides on the client. We must use the config object.
-        return initializeApp(firebaseConfig, `server-${new Date().getTime()}`);
+    // A unique name is needed to avoid conflicts with the client-side app
+    const appName = `server-${new Date().getTime()}`;
+    const existingApp = getApps().find(app => app.name === appName);
+    if (existingApp) {
+        return existingApp;
     }
-    return getApp(`server-${new Date().getTime()}`);
+    // When on the server, we can't rely on the automatic SDK configuration
+    // that App Hosting provides on the client. We must use the config object.
+    return initializeApp(firebaseConfig, appName);
 }
 
 
@@ -118,6 +121,7 @@ export async function saveBillAction(
         itemName: item.itemName,
         quantity: Number(item.quantity) || 0,
         rate: Number(item.rate) || 0,
+        cost: Number(item.cost) || 0,
       };
       await addDoc(itemsCollection, itemData);
     }
