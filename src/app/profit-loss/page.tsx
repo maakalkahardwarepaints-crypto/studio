@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useUser, useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, collectionGroup, getDocs, query, where, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -49,8 +49,16 @@ export default function ProfitLossPage() {
 
           // Fetch all items within those bills
           const itemsQuery = query(collectionGroup(firestore, 'items'), where('__name__', '>=', userDoc.path + '/'), where('__name__', '<', userDoc.path + '~'));
-
-          const itemsSnapshot = await getDocs(itemsQuery);
+          
+          const itemsSnapshot = await getDocs(itemsQuery).catch(serverError => {
+             const permissionError = new FirestorePermissionError({
+                path: 'items', // Collection group queries don't have a single path, so we use the group ID.
+                operation: 'list',
+              });
+              errorEmitter.emit('permission-error', permissionError);
+              // We need to re-throw the error to be caught by the outer try/catch and set UI state
+              throw permissionError;
+          });
 
           let totalCostOfGoods = 0;
           itemsSnapshot.forEach(doc => {
@@ -58,9 +66,9 @@ export default function ProfitLossPage() {
             totalCostOfGoods += (item.cost || 0) * (item.quantity || 0);
           });
           setTotalCost(totalCostOfGoods);
+
         } catch (e: any) {
           setError(e.message || "Failed to fetch profit and loss data.");
-          console.error(e);
         } finally {
           setIsLoading(false);
         }
@@ -111,7 +119,7 @@ export default function ProfitLossPage() {
       <main className="container mx-auto p-4 md:p-8">
         <Card className="max-w-4xl mx-auto">
           <CardHeader>
-            <CardTitle>Profit & Loss Statement</CardTitle>
+            <CardTitle>Profit &amp; Loss Statement</CardTitle>
             <CardDescription>An overview of your business's financial performance.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
