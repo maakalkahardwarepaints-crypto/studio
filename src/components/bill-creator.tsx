@@ -362,8 +362,13 @@ export function BillCreator() {
         {/* Preview Dialog */}
         <AlertDialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
             <AlertDialogContent className="max-w-4xl p-0 border-0">
-                <BillPreview bill={form.getValues()} />
-                <AlertDialogFooter className="p-4 bg-slate-50 dark:bg-slate-800 rounded-b-lg -mt-2">
+                <AlertDialogHeader className="p-6 pb-0">
+                  <AlertDialogTitle>Bill Preview</AlertDialogTitle>
+                </AlertDialogHeader>
+                <div className="px-6">
+                  <BillPreview bill={form.getValues()} />
+                </div>
+                <AlertDialogFooter className="p-4 bg-slate-50 dark:bg-slate-800 rounded-b-lg">
                     <AlertDialogCancel>Close</AlertDialogCancel>
                 </AlertDialogFooter>
             </AlertDialogContent>

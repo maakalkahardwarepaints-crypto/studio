@@ -61,7 +61,7 @@ export function BillPreview({ bill }: BillPreviewProps) {
               <TableRow key={index}>
                 <TableCell className="font-medium">{item.itemName}</TableCell>
                 <TableCell className="text-right">{quantity.toLocaleString()}</TableCell>
-                <TableCell className="text-right">₹{rate.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{(rate).toFixed(2)}</TableCell>
                 <TableCell className="text-right">₹{amount.toFixed(2)}</TableCell>
               </TableRow>
             );
