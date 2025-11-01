@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BillFormValues, billFormSchema } from "@/lib/schemas";
-import { getBillSummaryAction } from "@/lib/actions";
+import { getBillSummaryAction, saveBillAction } from "@/lib/actions";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2, Plus, Share2, Trash2, FileText, BrainCircuit, Download } from "lucide-react";
+import { CalendarIcon, Loader2, Plus, Share2, Trash2, FileText, BrainCircuit, Download, History } from "lucide-react";
 import { format } from "date-fns";
 import { BillPreview } from "./bill-preview";
 import {
@@ -34,14 +34,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useUser, useAuth } from "@/firebase";
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
 
 export function BillCreator() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [summary, setSummary] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
 
   const { toast } = useToast();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+  const router = useRouter();
+
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [user, isUserLoading, auth]);
 
   const form = useForm<BillFormValues>({
     resolver: zodResolver(billFormSchema),
@@ -112,6 +128,46 @@ export function BillCreator() {
     }
     setIsPreviewOpen(true);
   }
+
+  const handleSaveBill = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) {
+      toast({
+        title: "Invalid Form",
+        description: "Please fill all required fields to save the bill.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Not Authenticated",
+        description: "You must be signed in to save a bill.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSaving(true);
+    const result = await saveBillAction(form.getValues(), user.uid);
+    setIsSaving(false);
+
+    if ("error" in result) {
+      toast({
+        title: "Save Failed",
+        description: result.error,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Bill Saved!",
+        description: "Your bill has been successfully saved.",
+      });
+      router.push(`/bill/${result.billId}`);
+    }
+  };
+
 
   return (
     <FormProvider {...form}>
@@ -263,8 +319,15 @@ export function BillCreator() {
                 <DropdownMenuItem onSelect={() => toast({title: "Coming Soon!", description: "Email sharing will be available soon."})}>Via Email</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="secondary" onClick={() => toast({title: "Coming Soon!", description: "Save functionality will be available soon."})}>
-              <Download className="mr-2" /> Save Bill
+            <Button onClick={handleSaveBill} disabled={isSaving || isUserLoading}>
+              {isSaving ? <Loader2 className="mr-2 animate-spin" /> : <Download className="mr-2" />}
+              Save Bill
+            </Button>
+             <Button variant="secondary" asChild>
+              <Link href="/bill/history">
+                <History className="mr-2" />
+                View History
+              </Link>
             </Button>
           </CardContent>
         </Card>

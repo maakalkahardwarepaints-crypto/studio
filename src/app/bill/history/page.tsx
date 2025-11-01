@@ -1,0 +1,134 @@
+'use client';
+
+import { useMemo } from 'react';
+import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, AlertCircle, Eye } from 'lucide-react';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { JMKTradingLogo } from '@/components/icons';
+
+export default function BillHistoryPage() {
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
+
+  const billsCollection = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, `users/${user.uid}/bills`);
+  }, [firestore, user]);
+
+  const { data: bills, isLoading: isLoadingBills, error: billsError } = useCollection(billsCollection);
+
+  const sortedBills = useMemo(() => {
+    if (!bills) return [];
+    return [...bills].sort((a, b) => {
+      const dateA = a.createdAt?.toDate() || 0;
+      const dateB = b.createdAt?.toDate() || 0;
+      return dateB - dateA;
+    });
+  }, [bills]);
+
+  if (isUserLoading || (user && isLoadingBills)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Authentication Required</h1>
+        <p className="text-muted-foreground mb-4">Please sign in to view your bill history.</p>
+        <Button asChild>
+          <Link href="/create-bill">Go to Bill Creation</Link>
+        </Button>
+      </div>
+    );
+  }
+  
+  if (billsError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Error</h1>
+        <p className="text-muted-foreground mb-4">Could not load bill history. Please try again later.</p>
+        <p className="text-xs text-muted-foreground">{billsError.message}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4">
+          <Link href="/" className="flex items-center gap-2">
+            <JMKTradingLogo className="h-8 w-8" />
+            <span className="font-bold text-foreground">JMK Trading</span>
+          </Link>
+          <Button asChild>
+            <Link href="/create-bill">Create New Bill</Link>
+          </Button>
+        </div>
+      </header>
+      <main className="container mx-auto p-4 md:p-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Bill History</CardTitle>
+            <CardDescription>A list of all your saved bills.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {sortedBills.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Bill #</TableHead>
+                      <TableHead>Client Name</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedBills.map((bill) => (
+                      <TableRow key={bill.id}>
+                        <TableCell className="font-medium">{bill.billNumber}</TableCell>
+                        <TableCell>{bill.clientName}</TableCell>
+                        <TableCell>
+                          {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-right">${bill.totalAmount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button asChild variant="ghost" size="icon">
+                            <Link href={`/bill/${bill.id}`} aria-label="View Bill">
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <h3 className="text-xl font-semibold">No Bills Found</h3>
+                <p className="text-muted-foreground mt-2">You haven't saved any bills yet.</p>
+                <Button asChild className="mt-4">
+                  <Link href="/create-bill">Create Your First Bill</Link>
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+}
