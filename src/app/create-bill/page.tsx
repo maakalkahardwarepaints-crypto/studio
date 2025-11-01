@@ -1,4 +1,5 @@
 import { BillCreator } from "@/components/bill-creator";
+import { Button } from "@/components/ui/button";
 import { JMKTradingLogo } from "@/components/icons";
 import Link from "next/link";
 
@@ -11,6 +12,9 @@ export default function CreateBillPage() {
             <JMKTradingLogo className="h-8 w-8" />
             <span className="font-bold text-foreground">JMK Trading</span>
           </Link>
+          <Button asChild variant="secondary">
+              <Link href="/bill/history">View Bill History</Link>
+          </Button>
         </div>
       </header>
       <main className="container mx-auto p-4 md:p-8">

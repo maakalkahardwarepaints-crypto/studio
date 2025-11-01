@@ -17,9 +17,14 @@ export default function Home() {
             </p>
           </div>
         </div>
-        <Button asChild size="lg" className="shadow-lg shadow-primary/20">
-          <Link href="/create-bill">Create New Bill</Link>
-        </Button>
+        <div className="flex gap-4">
+            <Button asChild size="lg" className="shadow-lg shadow-primary/20">
+              <Link href="/create-bill">Create New Bill</Link>
+            </Button>
+            <Button asChild size="lg" variant="secondary">
+                <Link href="/bill/history">View Bill History</Link>
+            </Button>
+        </div>
       </div>
     </main>
   );
