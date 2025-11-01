@@ -19,14 +19,11 @@ export function BillPreview({ bill }: BillPreviewProps) {
     <div className="bg-white text-black p-8 rounded-lg max-w-4xl mx-auto font-sans text-sm">
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
-        <div className="flex items-center gap-4">
-          <JMKTradingLogo className="h-16 w-16" />
-          <div>
-            <h1 className="text-2xl font-bold">{bill.sellerName}</h1>
-            <p className="text-gray-600">{bill.sellerAddress}</p>
-            {bill.sellerShopNumber && <p className="text-gray-600">Shop No: {bill.sellerShopNumber}</p>}
-            {bill.sellerOwnerNumber && <p className="text-gray-600">Contact: {bill.sellerOwnerNumber}</p>}
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold">{bill.sellerName}</h1>
+          <p className="text-gray-600">{bill.sellerAddress}</p>
+          {bill.sellerShopNumber && <p className="text-gray-600">Shop No: {bill.sellerShopNumber}</p>}
+          {bill.sellerOwnerNumber && <p className="text-gray-600">Contact: {bill.sellerOwnerNumber}</p>}
         </div>
         <div className="text-right">
           <h2 className="text-3xl font-bold uppercase text-gray-700">Invoice</h2>

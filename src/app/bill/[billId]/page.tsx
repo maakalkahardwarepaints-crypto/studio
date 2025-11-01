@@ -8,6 +8,7 @@ import { BillPreview } from '@/components/bill-preview';
 import type { BillFormValues } from '@/lib/schemas';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { JMKTradingLogo } from '@/components/icons';
 
 interface BillPageProps {
   params: {
@@ -84,6 +85,7 @@ export default function BillPage({ params }: BillPageProps) {
        <header className="max-w-4xl mx-auto mb-4">
         <div className="flex justify-between items-center">
           <Link href="/" className="flex items-center gap-2">
+            <JMKTradingLogo className="h-8 w-8" />
             <span className="font-bold text-foreground">JMK Trading</span>
           </Link>
            <div className="flex gap-2">
