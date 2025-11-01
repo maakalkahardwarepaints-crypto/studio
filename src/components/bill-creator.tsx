@@ -72,13 +72,18 @@ export function BillCreator() {
       sellerOwnerNumber: "+1 (555) 123-4567",
       clientName: "",
       clientAddress: "",
-      billNumber: `BILL-${new Date().getTime()}`,
+      billNumber: "",
       date: new Date(),
       items: [{ itemName: "", quantity: 1, rate: 0, cost: 0 }],
       discount: 0,
     },
     mode: "onBlur",
   });
+
+  useEffect(() => {
+    // Generate bill number on the client to avoid hydration mismatch
+    form.setValue("billNumber", `BILL-${new Date().getTime()}`);
+  }, [form.setValue]);
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
