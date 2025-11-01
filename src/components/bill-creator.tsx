@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -81,6 +82,8 @@ export function BillCreator() {
   });
 
   useEffect(() => {
+    // Generate a unique bill number only on the client-side
+    // to avoid hydration mismatch errors.
     const billNumber = form.getValues("billNumber");
     if (!billNumber) {
         form.setValue("billNumber", `BILL-${new Date().getTime()}`);
@@ -305,9 +308,9 @@ export function BillCreator() {
                     return (
                       <TableRow key={field.id}>
                         <TableCell><FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (<Input placeholder="E.g. T-Shirt" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field: { onChange, ...restField } }) => (<Input type="number" placeholder="1" onChange={e => onChange(parseFloat(e.target.value))} {...restField} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field: { onChange, ...restField } }) => (<Input type="number" placeholder="10.00" onChange={e => onChange(parseFloat(e.target.value))} {...restField} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field: { onChange, ...restField } }) => (<Input type="number" placeholder="15.00" onChange={e => onChange(parseFloat(e.target.value))} {...restField} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (<Input type="number" placeholder="10.00" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (<Input type="number" placeholder="15.00" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell className="text-right font-medium">₹{amount.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1} aria-label="Remove item">
@@ -441,5 +444,3 @@ export function BillCreator() {
     </FormProvider>
   );
 }
-
-    
