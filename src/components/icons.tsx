@@ -4,44 +4,36 @@ export function JMKTradingLogo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 200 200"
+      viewBox="0 0 256 256"
       width="1em"
       height="1em"
       {...props}
     >
-      <defs>
-        <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#F97316" />
-          <stop offset="100%" stopColor="#EA580C" />
-        </linearGradient>
-      </defs>
-      <rect
-        fill="url(#logo-gradient)"
-        width="200"
-        height="200"
-        rx="20"
-      ></rect>
-      <text
-        x="50%"
-        y="50%"
-        textAnchor="middle"
-        dy=".3em"
-        fill="white"
-        fontSize="70"
-        fontFamily="Arial, sans-serif"
-        fontWeight="bold"
-      >
-        JMK
-      </text>
       <path
-        fill="white"
-        d="M52.5 75c-5.52 0-10 4.48-10 10v2.5h-5c-2.76 0-5 2.24-5 5v15c0 2.76 2.24 5 5 5h5v5c0 2.76 2.24 5 5 5h12.5v-5h-10v-2.5c0-2.76-2.24-5-5-5h-2.5v-10h2.5c2.76 0 5-2.24 5-5v-2.5h10v-5H52.5zM22.5 92.5c-1.38 0-2.5 1.12-2.5 2.5v10c0 1.38 1.12 2.5 2.5 2.5h2.5v-15h-2.5z"
-      ></path>
-      <g fill="white" transform="translate(135, 80) scale(1.5)">
-        <rect x="0" y="15" width="4" height="10" rx="1"></rect>
-        <rect x="7" y="10" width="4" height="15" rx="1"></rect>
-        <rect x="14" y="5" width="4" height="20" rx="1"></rect>
-      </g>
+        fill="#004d61"
+        d="M232,216a8,8,0,0,1-8,8H32a8,8,0,0,1-6.4-12.8l96-128a8,8,0,0,1,12.8,0l96,128A8,8,0,0,1,232,216Z"
+        transform="scale(1, 0.2) translate(0, 830)"
+      />
+      <path
+        fill="#007a99"
+        d="M24,72v128h88V48.15A7.94,7.94,0,0,0,105.6,40L24,56Z"
+        transform="translate(0, -10)"
+      />
+      <path
+        fill="#007a99"
+        d="M232,72v128h-88V48.15a7.94,7.94,0,0,1,6.4-7.85L232,56Z"
+        transform="translate(0, -10)"
+      />
+      <path
+        fill="#00c2e0"
+        d="M112,48.15V190H32V64.21Z"
+        transform="translate(0, -10)"
+      />
+      <path
+        fill="#00c2e0"
+        d="M144,48.15V190h80V64.21Z"
+        transform="translate(0, -10)"
+      />
     </svg>
   );
 }
