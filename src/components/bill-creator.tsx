@@ -82,10 +82,13 @@ export function BillCreator() {
   });
 
   useEffect(() => {
-    const billNumber = form.getValues("billNumber");
-    if (!billNumber) {
-        const timestamp = new Date().getTime();
-        form.setValue("billNumber", `BILL-${timestamp}`);
+    // Generate a unique bill number only on the client-side
+    if (typeof window !== 'undefined') {
+        const currentBillNumber = form.getValues("billNumber");
+        if (!currentBillNumber) {
+            const timestamp = new Date().getTime();
+            form.setValue("billNumber", `BILL-${timestamp}`);
+        }
     }
   }, [form]);
 
@@ -286,11 +289,12 @@ export function BillCreator() {
             <CardDescription>Add items to the bill. All prices are GST-free.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[150px] sm:min-w-[250px]">Item Name</TableHead>
+                    <TableHead className="min-w-[250px]">Item Name</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead>Cost</TableHead>
                     <TableHead>Rate</TableHead>
@@ -307,9 +311,9 @@ export function BillCreator() {
                     return (
                       <TableRow key={field.id}>
                         <TableCell><FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (<Input placeholder="E.g. T-Shirt" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (<Input type="number" placeholder="10.00" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (<Input type="number" placeholder="15.00" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (<Input type="number" placeholder="10.00" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (<Input type="number" placeholder="15.00" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell className="text-right font-medium">₹{amount.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1} aria-label="Remove item">
@@ -322,6 +326,59 @@ export function BillCreator() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+              {fields.map((field, index) => {
+                const item = watchItems[index];
+                const quantity = parseFloat(String(item?.quantity)) || 0;
+                const rate = parseFloat(String(item?.rate)) || 0;
+                const amount = quantity * rate;
+                return (
+                  <Card key={field.id} className="relative pt-6">
+                    <CardContent className="space-y-4">
+                      <FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (
+                          <FormItem>
+                              <FormLabel>Item Name</FormLabel>
+                              <FormControl><Input placeholder="E.g. T-Shirt" {...field} /></FormControl>
+                              <FormMessage />
+                          </FormItem>
+                      )} />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (
+                           <FormItem>
+                              <FormLabel>Quantity</FormLabel>
+                              <FormControl><Input type="number" placeholder="1" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} /></FormControl>
+                              <FormMessage />
+                          </FormItem>
+                        )} />
+                         <FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (
+                           <FormItem>
+                              <FormLabel>Cost</FormLabel>
+                              <FormControl><Input type="number" placeholder="10.00" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} /></FormControl>
+                              <FormMessage />
+                          </FormItem>
+                        )} />
+                      </div>
+                       <FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (
+                           <FormItem>
+                              <FormLabel>Rate</FormLabel>
+                              <FormControl><Input type="number" placeholder="15.00" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} /></FormControl>
+                              <FormMessage />
+                          </FormItem>
+                        )} />
+                    </CardContent>
+                    <CardFooter className="flex justify-between items-center bg-muted/50 p-3">
+                        <span className="font-medium">Amount: ₹{amount.toFixed(2)}</span>
+                         <Button variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1} aria-label="Remove item" className="absolute top-2 right-2">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+            </div>
+
             <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ itemName: "", quantity: 1, rate: 0, cost: 0 })}>
               <Plus className="mr-2 h-4 w-4" /> Add Item
             </Button>
