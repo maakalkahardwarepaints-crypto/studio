@@ -82,11 +82,10 @@ export function BillCreator() {
   });
 
   useEffect(() => {
-    // Generate a unique bill number only on the client-side
-    // to avoid hydration mismatch errors.
     const billNumber = form.getValues("billNumber");
     if (!billNumber) {
-        form.setValue("billNumber", `BILL-${new Date().getTime()}`);
+        const timestamp = new Date().getTime();
+        form.setValue("billNumber", `BILL-${timestamp}`);
     }
   }, [form]);
 
@@ -230,7 +229,7 @@ export function BillCreator() {
               <FormField name="sellerAddress" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Company Address</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
               )} />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField name="sellerShopNumber" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>Shop Number (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
@@ -254,7 +253,7 @@ export function BillCreator() {
               <FormField name="clientAddress" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Client Address</FormLabel><FormControl><Textarea placeholder="456 Client Ave, Othertown, USA" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField name="billNumber" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>Bill Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
@@ -263,7 +262,7 @@ export function BillCreator() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
-                          <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                          <Button variant={"outline"} className={cn("pl-3 text-left font-normal w-full", !field.value && "text-muted-foreground")}>
                             {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -291,8 +290,8 @@ export function BillCreator() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[250px]">Item Name</TableHead>
-                    <TableHead>Quantity</TableHead>
+                    <TableHead className="min-w-[150px] sm:min-w-[250px]">Item Name</TableHead>
+                    <TableHead>Qty</TableHead>
                     <TableHead>Cost</TableHead>
                     <TableHead>Rate</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
@@ -308,9 +307,9 @@ export function BillCreator() {
                     return (
                       <TableRow key={field.id}>
                         <TableCell><FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (<Input placeholder="E.g. T-Shirt" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (<Input type="number" placeholder="10.00" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (<Input type="number" placeholder="15.00" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (<Input type="number" placeholder="10.00" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
+                        <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (<Input type="number" placeholder="15.00" {...field} value={field.value || ''} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell className="text-right font-medium">₹{amount.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1} aria-label="Remove item">
@@ -364,7 +363,7 @@ export function BillCreator() {
             <CardTitle>Actions</CardTitle>
             <CardDescription>Preview, save, or share the bill.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-wrap gap-4">
+          <CardContent className="flex flex-col sm:flex-row flex-wrap gap-4">
              <Button type="button" onClick={handlePreview}>
               <FileText className="mr-2" /> Preview Bill
             </Button>
@@ -403,14 +402,14 @@ export function BillCreator() {
 
         {/* Preview Dialog */}
         <AlertDialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-            <AlertDialogContent className="max-w-4xl p-0 border-0">
+            <AlertDialogContent className="max-w-4xl w-[95%] p-0 border-0">
                 <AlertDialogHeader className="p-6 pb-0">
                     <AlertDialogTitle>Bill Preview</AlertDialogTitle>
                     <AlertDialogDescription>
                         A preview of how your bill will appear.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="px-6">
+                <div className="px-2 sm:px-6 overflow-y-auto max-h-[70vh]">
                   <BillPreview bill={form.getValues()} />
                 </div>
                 <AlertDialogFooter className="p-4 bg-slate-50 dark:bg-slate-800 rounded-b-lg">
