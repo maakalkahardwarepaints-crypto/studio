@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, collectionGroup, getDocs, query, where } from 'firebase/firestore';
+import { collection, collectionGroup, getDocs, query, where, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, AlertCircle, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
@@ -43,9 +43,13 @@ export default function ProfitLossPage() {
           const bills = billsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Bill));
           const revenue = bills.reduce((acc, bill) => acc + bill.totalAmount, 0);
           setTotalRevenue(revenue);
+          
+          // Define the parent path for the collection group query
+          const userDoc = doc(firestore, 'users', user.uid);
 
           // Fetch all items within those bills
-          const itemsQuery = query(collectionGroup(firestore, 'items'), where('__name__', '>=', `users/${user.uid}/bills/`), where('__name__', '<', `users/${user.uid}/bills/~`));
+          const itemsQuery = query(collectionGroup(firestore, 'items'), where('__name__', '>=', userDoc.path + '/'), where('__name__', '<', userDoc.path + '~'));
+
           const itemsSnapshot = await getDocs(itemsQuery);
 
           let totalCostOfGoods = 0;
@@ -145,7 +149,7 @@ export default function ProfitLossPage() {
                 </CardContent>
               </Card>
             </div>
-             {totalRevenue === 0 && totalCost === 0 && (
+             {totalRevenue === 0 && totalCost === 0 && !isLoading && (
                  <div className="text-center py-12">
                     <h3 className="text-xl font-semibold">No Financial Data Found</h3>
                     <p className="text-muted-foreground mt-2">Create some bills with costs to see your profit analysis.</p>
