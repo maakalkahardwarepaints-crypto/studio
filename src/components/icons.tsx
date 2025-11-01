@@ -1,6 +1,6 @@
 import type { SVGProps } from 'react';
 
-export function SwiftBillLogo(props: SVGProps<SVGSVGElement>) {
+export function JMKTradingLogo(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -14,13 +14,13 @@ export function SwiftBillLogo(props: SVGProps<SVGSVGElement>) {
         x="50"
         y="55"
         fontFamily="Arial, sans-serif"
-        fontSize="50"
+        fontSize="40"
         fill="hsl(var(--primary-foreground))"
         textAnchor="middle"
         dominantBaseline="middle"
         fontWeight="bold"
       >
-        SB
+        JMK
       </text>
     </svg>
   );

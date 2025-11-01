@@ -3,7 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: 'SwiftBill',
+  title: 'JMK Trading Bill Book',
   description: 'Simple and easy-to-use billing application',
 };
 

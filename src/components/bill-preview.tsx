@@ -1,4 +1,4 @@
-import { SwiftBillLogo } from "@/components/icons";
+import { JMKTradingLogo } from "@/components/icons";
 import { BillFormValues } from "@/lib/schemas";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,7 +18,7 @@ export function BillPreview({ bill }: BillPreviewProps) {
       {/* Header */}
       <div className="flex justify-between items-start mb-8">
         <div className="flex items-center gap-4">
-          <SwiftBillLogo className="h-16 w-16" />
+          <JMKTradingLogo className="h-16 w-16" />
           <div>
             <h1 className="text-2xl font-bold">{bill.sellerName}</h1>
             <p className="text-gray-600">{bill.sellerAddress}</p>
