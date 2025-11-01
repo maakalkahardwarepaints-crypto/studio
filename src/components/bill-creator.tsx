@@ -263,7 +263,7 @@ export function BillCreator() {
                         <TableCell><FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (<Input placeholder="E.g. T-Shirt" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (<Input type="number" placeholder="15.00" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell className="text-right font-medium">${amount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">₹{amount.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1} aria-label="Remove item">
                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -283,11 +283,11 @@ export function BillCreator() {
           <CardFooter className="flex-col items-end space-y-2">
             <div className="flex justify-between w-full max-w-sm text-lg">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-semibold">${totalAmount.toFixed(2)}</span>
+              <span className="font-semibold">₹{totalAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between w-full max-w-sm text-xl font-bold">
               <span>Total</span>
-              <span>${totalAmount.toFixed(2)}</span>
+              <span>₹{totalAmount.toFixed(2)}</span>
             </div>
           </CardFooter>
         </Card>

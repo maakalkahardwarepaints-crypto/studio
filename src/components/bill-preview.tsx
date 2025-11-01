@@ -8,7 +8,7 @@ interface BillPreviewProps {
   bill: BillFormValues;
 }
 
-const DISCLAIMER_THRESHOLD = 1000;
+const DISCLAIMER_THRESHOLD = 80000;
 
 export function BillPreview({ bill }: BillPreviewProps) {
   const totalAmount = bill.items.reduce((acc, item) => acc + item.quantity * item.rate, 0);
@@ -57,8 +57,8 @@ export function BillPreview({ bill }: BillPreviewProps) {
               <TableRow key={index}>
                 <TableCell className="font-medium">{item.itemName}</TableCell>
                 <TableCell className="text-right">{item.quantity.toLocaleString()}</TableCell>
-                <TableCell className="text-right">${item.rate.toFixed(2)}</TableCell>
-                <TableCell className="text-right">${amount.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{item.rate.toFixed(2)}</TableCell>
+                <TableCell className="text-right">₹{amount.toFixed(2)}</TableCell>
               </TableRow>
             );
           })}
@@ -70,12 +70,12 @@ export function BillPreview({ bill }: BillPreviewProps) {
         <div className="w-full max-w-xs">
           <div className="flex justify-between py-2">
             <span className="font-medium text-gray-600">Subtotal</span>
-            <span className="font-medium">${totalAmount.toFixed(2)}</span>
+            <span className="font-medium">₹{totalAmount.toFixed(2)}</span>
           </div>
           <Separator className="my-2 bg-gray-300"/>
           <div className="flex justify-between py-2">
             <span className="font-bold text-lg">Total</span>
-            <span className="font-bold text-lg">${totalAmount.toFixed(2)}</span>
+            <span className="font-bold text-lg">₹{totalAmount.toFixed(2)}</span>
           </div>
         </div>
       </div>
@@ -86,7 +86,7 @@ export function BillPreview({ bill }: BillPreviewProps) {
         <p className="font-bold mb-2">Thank you for your business!</p>
         {totalAmount > DISCLAIMER_THRESHOLD && (
           <p className="text-xs italic">
-            This is not a GST invoice. For bills over ${DISCLAIMER_THRESHOLD}, please consult your tax advisor regarding compliance.
+            This is not a GST invoice. For bills over ₹{DISCLAIMER_THRESHOLD}, please consult your tax advisor regarding compliance.
           </p>
         )}
       </div>
