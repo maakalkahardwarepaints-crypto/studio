@@ -1,0 +1,246 @@
+{
+  "entities": {
+    "Seller": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Seller",
+      "type": "object",
+      "description": "Represents the seller information for a bill.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the seller."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the seller."
+        },
+        "address": {
+          "type": "string",
+          "description": "Address of the seller."
+        },
+        "shopNumber": {
+          "type": "string",
+          "description": "Shop number of the seller."
+        },
+        "ownerNumber": {
+          "type": "string",
+          "description": "Owner's phone number of the seller."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address"
+      ]
+    },
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents the client information for a bill.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the client."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the client."
+        },
+        "address": {
+          "type": "string",
+          "description": "Address of the client."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "address"
+      ]
+    },
+    "Item": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Item",
+      "type": "object",
+      "description": "Represents an item in a bill.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the item."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Quantity of the item."
+        },
+        "rate": {
+          "type": "number",
+          "description": "Rate of the item."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Total amount for the item (quantity * rate)."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "quantity",
+        "rate",
+        "amount"
+      ]
+    },
+    "Bill": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Bill",
+      "type": "object",
+      "description": "Represents a bill.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the bill."
+        },
+        "sellerId": {
+          "type": "string",
+          "description": "Reference to Seller. (Relationship: Seller 1:N Bill)"
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to Client. (Relationship: Client 1:N Bill)"
+        },
+        "billNumber": {
+          "type": "string",
+          "description": "Bill number."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the bill.",
+          "format": "date-time"
+        },
+        "itemIds": {
+          "type": "array",
+          "description": "References to Items. (Relationship: Bill 1:N Item)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Total amount of the bill."
+        },
+        "thankYouNote": {
+          "type": "string",
+          "description": "Thank you note for the bill."
+        },
+        "aiSummary": {
+          "type": "string",
+          "description": "AI-generated summary of the bill."
+        },
+        "logoUrl": {
+          "type": "string",
+          "description": "URL of the company logo used in the bill.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "sellerId",
+        "clientId",
+        "billNumber",
+        "date",
+        "itemIds",
+        "totalAmount"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/bills/{billId}",
+        "definition": {
+          "entityName": "Bill",
+          "schema": {
+            "$ref": "#/backend/entities/Bill"
+          },
+          "description": "Stores bill information for each user. Includes denormalized 'sellerId' and 'clientId' to avoid 'get()' calls in security rules. Path based ownership ensures each user can only access their own bills.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "billId",
+              "description": "The unique identifier for the bill."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/bills/{billId}/items/{itemId}",
+        "definition": {
+          "entityName": "Item",
+          "schema": {
+            "$ref": "#/backend/entities/Item"
+          },
+          "description": "Stores item details for a specific bill. Path based ownership ensures each user can only access items associated with their own bills.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "billId",
+              "description": "The unique identifier for the bill."
+            },
+            {
+              "name": "itemId",
+              "description": "The unique identifier for the item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/sellers/{sellerId}",
+        "definition": {
+          "entityName": "Seller",
+          "schema": {
+            "$ref": "#/backend/entities/Seller"
+          },
+          "description": "Stores seller information. The seller's data is public, so all users can see all sellers' data. The seller's ID is also stored inside each bill for a particular user, so the seller information does not need to be denormalized for each bill.",
+          "params": [
+            {
+              "name": "sellerId",
+              "description": "The unique identifier for the seller."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores client information. The client's data is public, so all users can see all clients' data. The client's ID is also stored inside each bill for a particular user, so the client information does not need to be denormalized for each bill.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "The unique identifier for the client."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to efficiently manage bill data for the SwiftBill application, focusing on simplicity and security. To ensure Authorization Independence, each bill will include denormalized copies of seller and client information.  This avoids the need for `get()` calls in security rules. By storing each user's bill history under their user ID, we create path-based ownership, automatically ensuring that only the user can access their bills. The subcollections `bills` and `items` within each user document maintain a clear ownership hierarchy, ensuring secure access and data integrity. This design supports listing operations (QAPs) by only allowing access to bills within the current user's path. The AI summary is included within the Bill to reduce the need for additional reads."
+  }
+}
