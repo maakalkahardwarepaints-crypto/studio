@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2, Plus, Share2, Trash2, FileText, BrainCircuit, Download, History } from "lucide-react";
+import { CalendarIcon, Loader2, Plus, Share2, Trash2, FileText, BrainCircuit, Download, History, Percent } from "lucide-react";
 import { format } from "date-fns";
 import { BillPreview } from "./bill-preview";
 import {
@@ -71,6 +71,7 @@ export function BillCreator() {
       billNumber: `BILL-${new Date().getTime()}`,
       date: new Date(),
       items: [{ itemName: "", quantity: 1, rate: 0 }],
+      discount: 0,
     },
     mode: "onBlur",
   });
@@ -81,11 +82,17 @@ export function BillCreator() {
   });
 
   const watchItems = form.watch("items");
-  const totalAmount = watchItems.reduce((acc, current) => {
+  const watchDiscount = form.watch("discount");
+
+  const subtotal = watchItems.reduce((acc, current) => {
     const quantity = parseFloat(String(current.quantity)) || 0;
     const rate = parseFloat(String(current.rate)) || 0;
     return acc + quantity * rate;
   }, 0);
+  
+  const discountAmount = subtotal * ((parseFloat(String(watchDiscount)) || 0) / 100);
+  const totalAmount = subtotal - discountAmount;
+
 
   const handleGenerateSummary = async () => {
     const isValid = await form.trigger();
@@ -282,10 +289,28 @@ export function BillCreator() {
             </Button>
             {form.formState.errors.items && <p className="text-sm font-medium text-destructive mt-2">{form.formState.errors.items.root?.message}</p>}
           </CardContent>
-          <CardFooter className="flex-col items-end space-y-2">
+          <CardFooter className="flex flex-col items-end space-y-2">
+             <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                <FormField name="discount" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Discount (%)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input type="number" placeholder="0" {...field} className="pl-8" />
+                        <Percent className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+            </div>
             <div className="flex justify-between w-full max-w-sm text-lg">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-semibold">₹{totalAmount.toFixed(2)}</span>
+              <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+            </div>
+             <div className="flex justify-between w-full max-w-sm text-md">
+                <span className="text-muted-foreground">Discount</span>
+                <span className="font-semibold text-destructive">- ₹{discountAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between w-full max-w-sm text-xl font-bold">
               <span>Total</span>
@@ -362,5 +387,3 @@ export function BillCreator() {
     </FormProvider>
   );
 }
-
-    

@@ -9,34 +9,48 @@ export function JMKTradingLogo(props: SVGProps<SVGSVGElement>) {
       height="1em"
       {...props}
     >
-      <g strokeWidth="0" transform="translate(0, 0) scale(1)">
-        <circle cx="100" cy="100" r="95" fill="#1F3F98" />
+      <g>
         <path
-          d="M100 5 A 95 95 0 0 1 100 195 A 95 95 0 0 1 100 5 M 100 15 A 85 85 0 0 0 100 185 A 85 85 0 0 0 100 15"
-          fill="#B7232A"
+          fill="#d12f37"
+          d="M165.2,141.2c-8.9-20.6-22.3-39-39.2-54.3c-2.3-2.1-5.9-2.9-9.1-2.1c-15.3,4-30.2,9.3-44.4,16.2c-4.4,2.1-7.8,5.4-10.4,9.4c-4.1,6.3-7.5,13-10.3,20c-0.8,1.9-0.8,4,0,5.9c3.2,7.7,6.9,15.2,11.3,22.3c3.8,6.2,9.5,10.6,16.5,12.7c20.3,6,41,6,61.4,0c7-2.1,12.7-6.5,16.5-12.7c4.4-7.1,8.1-14.6,11.3-22.3C166,145.2,166,143.1,165.2,141.2z"
         />
-        <text
-          x="100"
-          y="115"
-          fontFamily="Arial-BoldMT, Arial"
-          fontSize="40"
-          fontWeight="bold"
-          fill="white"
-          textAnchor="middle"
-        >
-          JMK
-        </text>
-        <text
-          x="100"
-          y="150"
-          fontFamily="Arial-BoldMT, Arial"
-          fontSize="24"
-          fontWeight="bold"
-          fill="white"
-          textAnchor="middle"
-        >
-          TRADING
-        </text>
+        <path
+          fill="#1f3f98"
+          d="M34.8,141.2c8.9-20.6,22.3-39,39.2-54.3c2.3-2.1,5.9-2.9,9.1-2.1c15.3,4,30.2,9.3,44.4,16.2c4.4,2.1,7.8,5.4,10.4,9.4c4.1,6.3,7.5,13,10.3,20c0.8,1.9,0.8,4,0,5.9c-3.2,7.7-6.9,15.2-11.3,22.3c-3.8,6.2-9.5,10.6-16.5,12.7c-20.3,6-41,6-61.4,0c-7-2.1-12.7-6.5-16.5-12.7c-4.4-7.1-8.1-14.6-11.3-22.3C34,145.2,34,143.1,34.8,141.2z"
+        />
+        <path
+          fill="#333"
+          d="M100,163.3c-23.9,0-43.3-19.4-43.3-43.3s19.4-43.3,43.3-43.3s43.3,19.4,43.3,43.3S123.9,163.3,100,163.3z"
+        />
+        <path
+          fill="#fff"
+          d="M100,160c-22,0-40-18-40-40s18-40,40-40s40,18,40,40S122,160,100,160z"
+        />
+        <g fill="#333">
+          <path d="M78,65h10v20H78z M95,55h10v30H95z M112,45h10v40h-10z M129,35h10v50h-10z" />
+          <text
+            x="100"
+            y="110"
+            fontFamily="Arial-BoldMT, Arial"
+            fontSize="28"
+            fontWeight="bold"
+            textAnchor="middle"
+            fill="#333"
+          >
+            JMK
+          </text>
+          <text
+            x="100"
+            y="135"
+            fontFamily="Arial-BoldMT, Arial"
+            fontSize="18"
+            fontWeight="bold"
+            textAnchor="middle"
+            fill="#333"
+          >
+            TRADING
+          </text>
+        </g>
       </g>
     </svg>
   );

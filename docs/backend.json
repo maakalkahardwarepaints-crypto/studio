@@ -131,6 +131,10 @@
           "type": "number",
           "description": "Total amount of the bill."
         },
+        "discount": {
+            "type": "number",
+            "description": "Discount percentage applied to the bill."
+        },
         "thankYouNote": {
           "type": "string",
           "description": "Thank you note for the bill."

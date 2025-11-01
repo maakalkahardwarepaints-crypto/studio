@@ -11,7 +11,9 @@ interface BillPreviewProps {
 const DISCLAIMER_THRESHOLD = 80000;
 
 export function BillPreview({ bill }: BillPreviewProps) {
-  const totalAmount = bill.items.reduce((acc, item) => acc + item.quantity * item.rate, 0);
+  const subtotal = bill.items.reduce((acc, item) => acc + (item.quantity || 0) * (item.rate || 0), 0);
+  const discountAmount = subtotal * ((bill.discount || 0) / 100);
+  const totalAmount = subtotal - discountAmount;
 
   return (
     <div className="bg-white text-black p-8 rounded-lg max-w-4xl mx-auto font-sans text-sm">
@@ -67,13 +69,19 @@ export function BillPreview({ bill }: BillPreviewProps) {
 
       {/* Total */}
       <div className="flex justify-end mb-8">
-        <div className="w-full max-w-xs">
-          <div className="flex justify-between py-2">
+        <div className="w-full max-w-xs space-y-2">
+          <div className="flex justify-between py-1">
             <span className="font-medium text-gray-600">Subtotal</span>
-            <span className="font-medium">₹{totalAmount.toFixed(2)}</span>
+            <span className="font-medium">₹{subtotal.toFixed(2)}</span>
           </div>
+           {bill.discount && bill.discount > 0 && (
+            <div className="flex justify-between py-1">
+              <span className="font-medium text-gray-600">Discount ({bill.discount}%)</span>
+              <span className="font-medium text-red-600">- ₹{discountAmount.toFixed(2)}</span>
+            </div>
+          )}
           <Separator className="my-2 bg-gray-300"/>
-          <div className="flex justify-between py-2">
+          <div className="flex justify-between py-1">
             <span className="font-bold text-lg">Total</span>
             <span className="font-bold text-lg">₹{totalAmount.toFixed(2)}</span>
           </div>
