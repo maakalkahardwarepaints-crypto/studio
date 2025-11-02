@@ -51,11 +51,14 @@ service cloud.firestore {
      * @description Rules for collection group queries on the 'items' collection.
      * @path /users/{userId}/bills/{billId}/items/{itemId}
      * @allow (list) - Allows a user to list all items across all their bills for profit/loss calculation.
+     *   The rule works by checking if the path of the documents being queried starts with the user's own `users/{userId}` path.
+     *   `request.resource.name` is the full path of the document. `request.auth.uid` is the ID of the requesting user.
+     *   This ensures a user can only list items that are nested under their own user document.
      * @deny (list) - Prevents a user from listing items belonging to other users.
      * @principle Enforces ownership for collection group queries.
      */
     match /{path=**}/items/{itemId} {
-        allow list: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.uid == request.auth.uid;
+      allow list: if isSignedIn() && path.split('/')[1] == request.auth.uid;
     }
 
 
