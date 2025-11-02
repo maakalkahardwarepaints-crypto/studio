@@ -429,7 +429,7 @@ export function BillCreator() {
               )} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField name="sellerShopNumber" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Shop Number (Optional)</FormLabel><FormControl><Input {...field} readOnly={selectedCompany !== 'other'} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Contact (Optional)</FormLabel><FormControl><Input {...field} readOnly={selectedCompany !== 'other'} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField name="sellerOwnerNumber" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>Owner Number (Optional)</FormLabel><FormControl><Input {...field} readOnly={selectedCompany !== 'other'} /></FormControl><FormMessage /></FormItem>
@@ -704,3 +704,4 @@ export function BillCreator() {
     
 
     
+

@@ -22,8 +22,8 @@ export function BillPreview({ bill }: BillPreviewProps) {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold">{bill.sellerName}</h1>
           <p className="text-gray-600 text-xs sm:text-sm">{bill.sellerAddress}</p>
-          {bill.sellerShopNumber && <p className="text-gray-600 text-xs sm:text-sm">Shop No: {bill.sellerShopNumber}</p>}
-          {bill.sellerOwnerNumber && <p className="text-gray-600 text-xs sm:text-sm">Contact: {bill.sellerOwnerNumber}</p>}
+          {bill.sellerShopNumber && <p className="text-gray-600 text-xs sm:text-sm">Contact: {bill.sellerShopNumber}</p>}
+          {bill.sellerOwnerNumber && <p className="text-gray-600 text-xs sm:text-sm">Owner No: {bill.sellerOwnerNumber}</p>}
         </div>
         <div className="text-left sm:text-right w-full sm:w-auto">
           <h2 className="text-2xl sm:text-3xl font-bold uppercase text-gray-700">Invoice</h2>
