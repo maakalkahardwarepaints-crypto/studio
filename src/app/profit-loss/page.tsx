@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, collectionGroup } from 'firebase/firestore';
+import { collection, query, getDocs, collectionGroup, where, documentId } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
@@ -39,7 +39,14 @@ export default function ProfitLossPage() {
 
   const allItemsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'items'));
+    // Constrain the collection group query to the user's path.
+    // This is required by the security rules.
+    const userItemsPath = `users/${user.uid}`;
+    return query(
+        collectionGroup(firestore, 'items'),
+        where(documentId(), '>=', userItemsPath),
+        where(documentId(), '<', userItemsPath + 'z')
+    );
   }, [user, firestore]);
 
   const { data: items, isLoading: isLoadingItems, error: itemsError } = useCollection<Item>(allItemsQuery);
