@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, use } from 'react';
 import { useUser, useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { Loader2, AlertCircle, QrCode } from 'lucide-react';
@@ -28,7 +28,9 @@ interface BillPageProps {
 }
 
 export default function BillPage({ params }: BillPageProps) {
-  const { billId } = params;
+  // Correctly unwrap the params promise using React.use()
+  const { billId } = use(params);
+  
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isQrCodeOpen, setIsQrCodeOpen] = useState(false);

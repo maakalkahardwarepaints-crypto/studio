@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, use } from 'react';
 import { useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { JMKTradingLogo } from '@/components/icons';
 
+
 interface PublicBillPageProps {
   params: {
     userId: string;
@@ -18,8 +19,8 @@ interface PublicBillPageProps {
 }
 
 export default function PublicBillPage({ params }: PublicBillPageProps) {
+  const { userId, billId } = use(params);
   const firestore = useFirestore();
-  const { userId, billId } = params;
 
   const billDocRef = useMemoFirebase(() => {
     if (!userId || !billId) return null;
@@ -58,7 +59,7 @@ export default function PublicBillPage({ params }: PublicBillPageProps) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen text-center p-4">
         <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Error Loading Bill</h1>
+        <h1 className="text-2xl font-bold mb-2">Error</h1>
         <p className="text-muted-foreground mb-4">
           Could not load the bill. The link may be invalid or the bill may have been deleted.
         </p>
@@ -73,23 +74,26 @@ export default function PublicBillPage({ params }: PublicBillPageProps) {
         <AlertCircle className="h-12 w-12 text-destructive mb-4" />
         <h1 className="text-2xl font-bold mb-2">Bill Not Found</h1>
         <p className="text-muted-foreground mb-4">The requested bill could not be found.</p>
+        <Button asChild>
+          <Link href="/">Go to Homepage</Link>
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 sm:p-8">
-      <header className="max-w-4xl mx-auto mb-4">
-        <div className="flex justify-between items-center">
-            <Link href="/" className="flex items-center gap-2">
-                <JMKTradingLogo className="h-8 w-8" />
-                <span className="font-bold text-foreground">JMK Trading</span>
-            </Link>
-            <Button asChild>
-              <Link href="/create-bill">Create Your Own Bill</Link>
-            </Button>
-        </div>
-      </header>
+       <header className="max-w-4xl mx-auto mb-4">
+          <div className="flex justify-between items-center">
+              <Link href="/" className="flex items-center gap-2">
+                  <JMKTradingLogo className="h-8 w-8" />
+                  <span className="font-bold text-foreground">JMK Trading</span>
+              </Link>
+              <Button asChild>
+                <Link href="/create-bill">Create Your Own Bill</Link>
+              </Button>
+          </div>
+        </header>
       <BillPreview bill={bill} />
     </div>
   );
