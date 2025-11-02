@@ -46,6 +46,18 @@ service cloud.firestore {
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
+    
+    /**
+     * @description Rules for collection group queries on the 'items' collection.
+     * @path /users/{userId}/bills/{billId}/items/{itemId}
+     * @allow (list) - Allows a user to list all items across all their bills for profit/loss calculation.
+     * @deny (list) - Prevents a user from listing items belonging to other users.
+     * @principle Enforces ownership for collection group queries.
+     */
+    match /{path=**}/items/{itemId} {
+        allow list: if isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.uid == request.auth.uid;
+    }
+
 
     /**
      * @description Rules for documents in the /users/{userId}/bills/{billId} collection.
@@ -83,7 +95,6 @@ service cloud.firestore {
      */
     match /users/{userId}/bills/{billId}/items/{itemId} {
       allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.id == itemId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
