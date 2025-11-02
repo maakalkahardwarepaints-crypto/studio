@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, use } from 'react';
+import { useMemo, useState, use, useRef } from 'react';
 import { useUser, useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { Loader2, AlertCircle, QrCode, Share2, Download } from 'lucide-react';
