@@ -162,7 +162,8 @@ export default function ProfitLossPage() {
             const formatChartData = (data: { [key: string]: number }, dateFormat: string) => 
               Object.entries(data)
                 .map(([date, profit]) => ({
-                  date: format(new Date(date), dateFormat),
+                  date, // Keep original date string for sorting
+                  formattedDate: format(new Date(date), dateFormat),
                   profit: profit >= 0 ? profit : 0,
                   loss: profit < 0 ? Math.abs(profit) : 0,
                 }))
@@ -227,7 +228,7 @@ export default function ProfitLossPage() {
             <ChartContainer config={config} className="h-[250px] w-full">
               <BarChart accessibilityLayer data={data}>
                   <XAxis
-                      dataKey="date"
+                      dataKey="formattedDate"
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
