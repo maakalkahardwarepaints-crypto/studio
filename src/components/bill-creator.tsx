@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2, Plus, Share2, Trash2, FileText, BrainCircuit, Download, History, Percent } from "lucide-react";
+import { CalendarIcon, Loader2, Plus, Share2, Trash2, FileText, BrainCircuit, Download, History, Percent, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import { BillPreview } from "./bill-preview";
 import {
@@ -652,6 +652,12 @@ export function BillCreator() {
                 View History
               </Link>
             </Button>
+            <Button variant="secondary" asChild>
+              <Link href="/profit-loss">
+                <DollarSign className="mr-2" />
+                View Profit/Loss
+              </Link>
+            </Button>
           </CardContent>
         </Card>
 
@@ -698,10 +704,3 @@ export function BillCreator() {
     </FormProvider>
   );
 }
-
-    
-
-    
-
-    
-
