@@ -37,7 +37,8 @@ interface BillPageProps {
   };
 }
 
-export default function BillPage({ params }: BillPageProps) {
+export default function BillPage({ params: paramsProp }: BillPageProps) {
+  const params = use(paramsProp);
   const { billId } = params;
   
   const { user, isUserLoading } = useUser();
@@ -299,5 +300,3 @@ export default function BillPage({ params }: BillPageProps) {
     </>
   );
 }
-
-    
