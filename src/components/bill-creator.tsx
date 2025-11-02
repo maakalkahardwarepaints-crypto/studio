@@ -347,7 +347,7 @@ export function BillCreator() {
     body += "----------------------------------------\n";
     billData.items.forEach(item => {
       const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
-      body += `${item.itemName.padEnd(20)} | Qty: ${item.quantity} | Rate: ₹${item.rate.toFixed(2)} | Amount: ₹${amount.toFixed(2)}\n`;
+       body += `Item: ${item.itemName}\nQty: ${item.quantity}\nRate: ₹${item.rate.toFixed(2)}\nAmount: ₹${amount.toFixed(2)}\n\n`;
     });
     body += "----------------------------------------\n";
     body += `Subtotal: ₹${subtotal.toFixed(2)}\n`;
@@ -358,7 +358,7 @@ export function BillCreator() {
     body += `Thank you for your business!\n\nBest regards,\n${billData.sellerName}`;
 
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl, '_blank');
+    window.location.href = mailtoUrl;
   };
 
   return (
@@ -646,3 +646,5 @@ export function BillCreator() {
     </FormProvider>
   );
 }
+
+    
