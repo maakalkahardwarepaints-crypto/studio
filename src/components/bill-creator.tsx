@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -41,8 +40,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { collection, doc, serverTimestamp, setDoc, addDoc } from "firebase/firestore";
+import { collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+
+const companyProfiles = {
+    "JMK Trading": {
+        address: "Shop No 3-4, Pliot No -1,Kh. No.796,Asola Bandh Road, Fatehpur Beri,New Delhi -110074",
+        shopNumber: "011-41079296",
+        ownerNumber: "7479633348",
+    },
+    "Maa Kalka Hadware & Paints": {
+        address: "",
+        shopNumber: "",
+        ownerNumber: "",
+    },
+};
 
 export function BillCreator() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
@@ -52,6 +65,7 @@ export function BillCreator() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
+  const [selectedCompany, setSelectedCompany] = useState<string>("JMK Trading");
 
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
@@ -93,6 +107,22 @@ export function BillCreator() {
         }
     }
   }, [form]);
+
+  const handleCompanyChange = (value: string) => {
+    setSelectedCompany(value);
+    if (value in companyProfiles) {
+      const profile = companyProfiles[value as keyof typeof companyProfiles];
+      form.setValue("sellerName", value);
+      form.setValue("sellerAddress", profile.address);
+      form.setValue("sellerShopNumber", profile.shopNumber);
+      form.setValue("sellerOwnerNumber", profile.ownerNumber);
+    } else { // "Other"
+      form.setValue("sellerName", "");
+      form.setValue("sellerAddress", "");
+      form.setValue("sellerShopNumber", "");
+      form.setValue("sellerOwnerNumber", "");
+    }
+  };
 
   const { fields, append, remove } = useFieldArray({
     control: form.control,
@@ -225,13 +255,12 @@ export function BillCreator() {
     if (billData.sellerShopNumber) billPayload.sellerShopNumber = billData.sellerShopNumber;
     if (billData.sellerOwnerNumber) billPayload.sellerOwnerNumber = billData.sellerOwnerNumber;
   
-    // Use non-blocking write with contextual error handling
     setDoc(newBillRef, billPayload)
       .then(() => {
         const itemsCollection = collection(newBillRef, 'items');
         const itemPromises = billData.items.map((item) => {
           const itemData = {
-            id: doc(itemsCollection).id, // Generate ID client-side for context
+            id: doc(itemsCollection).id,
             itemName: item.itemName,
             quantity: Number(item.quantity) || 0,
             rate: Number(item.rate) || 0,
@@ -245,7 +274,7 @@ export function BillCreator() {
               requestResourceData: itemData,
             });
             errorEmitter.emit('permission-error', permissionError);
-            throw permissionError; // Propagate error to stop Promise.all
+            throw permissionError;
           });
         });
   
@@ -268,7 +297,7 @@ export function BillCreator() {
             errorEmitter.emit('permission-error', permissionError);
         }
         setIsSaving(false);
-      })
+      });
   };
 
   const handleExportCsv = async () => {
@@ -366,21 +395,44 @@ export function BillCreator() {
           <Card>
             <CardHeader>
               <CardTitle>Seller Details</CardTitle>
-              <CardDescription>Enter your company's information.</CardDescription>
+              <CardDescription>Select a company profile or enter new details.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField name="sellerName" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Company Name</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
+              <FormItem>
+                <FormLabel>Company Profile</FormLabel>
+                <Select onValueChange={handleCompanyChange} defaultValue={selectedCompany}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a company" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="JMK Trading">JMK Trading</SelectItem>
+                    <SelectItem value="Maa Kalka Hadware & Paints">Maa Kalka Hadware & Paints</SelectItem>
+                    <SelectItem value="other">Other (Enter manually)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FormItem>
+
+              {selectedCompany === "other" && (
+                <FormField name="sellerName" control={form.control} render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name</FormLabel>
+                    <FormControl><Input {...field} placeholder="Your Company Name" /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              )}
+              
               <FormField name="sellerAddress" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Company Address</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>Company Address</FormLabel><FormControl><Textarea {...field} readOnly={selectedCompany !== 'other'} /></FormControl><FormMessage /></FormItem>
               )} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField name="sellerShopNumber" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Shop Number (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Shop Number (Optional)</FormLabel><FormControl><Input {...field} readOnly={selectedCompany !== 'other'} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField name="sellerOwnerNumber" control={form.control} render={({ field }) => (
-                    <FormItem><FormLabel>Owner Number (Optional)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormItem><FormLabel>Owner Number (Optional)</FormLabel><FormControl><Input {...field} readOnly={selectedCompany !== 'other'} /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
             </CardContent>
