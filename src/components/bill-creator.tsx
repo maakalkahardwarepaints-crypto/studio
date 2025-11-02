@@ -35,7 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser, useAuth, useFirestore } from "@/firebase";
+import { useUser, useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -69,7 +69,7 @@ export function BillCreator() {
   const form = useForm<BillFormValues>({
     resolver: zodResolver(billFormSchema),
     defaultValues: {
-      sellerName: "J M K Trading",
+      sellerName: "Bill Book",
       sellerAddress: "123 Market St, Anytown, USA",
       sellerShopNumber: "S-15",
       sellerOwnerNumber: "+1 (555) 123-4567",
@@ -187,7 +187,7 @@ export function BillCreator() {
       });
       return;
     }
-
+  
     if (!user || !firestore) {
       toast({
         title: "Not Authenticated",
@@ -196,65 +196,88 @@ export function BillCreator() {
       });
       return;
     }
-
+  
     setIsSaving(true);
-    
-    try {
-      const billData = form.getValues();
-      const subtotal = billData.items.reduce(
-        (acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
-      const discountAmount = subtotal * ((Number(billData.discount) || 0) / 100);
-      const totalAmount = subtotal - discountAmount;
-      
-      const userBillsCollection = collection(firestore,`users/${user.uid}/bills`);
-      const newBillRef = doc(userBillsCollection);
-
-      const billPayload: any = {
-        id: newBillRef.id,
-        sellerName: billData.sellerName,
-        sellerAddress: billData.sellerAddress,
-        clientName: billData.clientName,
-        clientAddress: billData.clientAddress,
-        billNumber: billData.billNumber,
-        date: billData.date,
-        totalAmount,
-        discount: billData.discount || 0,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      };
-      
-      if (billData.sellerShopNumber) billPayload.sellerShopNumber = billData.sellerShopNumber;
-      if (billData.sellerOwnerNumber) billPayload.sellerOwnerNumber = billData.sellerOwnerNumber;
-
-      await setDoc(newBillRef, billPayload);
-
-      const itemsCollection = collection(newBillRef, 'items');
-      for (const item of billData.items) {
-        const itemData = {
-          itemName: item.itemName,
-          quantity: Number(item.quantity) || 0,
-          rate: Number(item.rate) || 0,
-          cost: Number(item.cost) || 0,
-        };
-        await addDoc(itemsCollection, itemData);
-      }
-
-      toast({
-        title: "Bill Saved!",
-        description: "Your bill has been successfully saved.",
+  
+    const billData = form.getValues();
+    const subtotal = billData.items.reduce(
+      (acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
+    const discountAmount = subtotal * ((Number(billData.discount) || 0) / 100);
+    const totalAmount = subtotal - discountAmount;
+  
+    const userBillsCollection = collection(firestore, `users/${user.uid}/bills`);
+    const newBillRef = doc(userBillsCollection);
+  
+    const billPayload: any = {
+      id: newBillRef.id,
+      sellerName: billData.sellerName,
+      sellerAddress: billData.sellerAddress,
+      clientName: billData.clientName,
+      clientAddress: billData.clientAddress,
+      billNumber: billData.billNumber,
+      date: billData.date,
+      totalAmount,
+      discount: billData.discount || 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+  
+    if (billData.sellerShopNumber) billPayload.sellerShopNumber = billData.sellerShopNumber;
+    if (billData.sellerOwnerNumber) billPayload.sellerOwnerNumber = billData.sellerOwnerNumber;
+  
+    // Use non-blocking write with contextual error handling
+    setDoc(newBillRef, billPayload)
+      .then(() => {
+        const itemsCollection = collection(newBillRef, 'items');
+        const itemPromises = billData.items.map((item) => {
+          const itemData = {
+            id: doc(itemsCollection).id, // Generate ID client-side for context
+            itemName: item.itemName,
+            quantity: Number(item.quantity) || 0,
+            rate: Number(item.rate) || 0,
+            cost: Number(item.cost) || 0,
+          };
+          const itemDocRef = doc(itemsCollection, itemData.id);
+          return setDoc(itemDocRef, itemData).catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: itemDocRef.path,
+              operation: 'create',
+              requestResourceData: itemData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw permissionError; // Propagate error to stop Promise.all
+          });
+        });
+  
+        return Promise.all(itemPromises);
+      })
+      .then(() => {
+        toast({
+          title: "Bill Saved!",
+          description: "Your bill has been successfully saved.",
+        });
+        router.push(`/bill/${newBillRef.id}`);
+      })
+      .catch((error) => {
+        // This will catch the bill creation error or any propagated item creation error
+        if (error instanceof FirestorePermissionError) {
+          // Error already emitted, just update UI state
+        } else {
+          // This is the catch for the bill setDoc itself
+          const permissionError = new FirestorePermissionError({
+            path: newBillRef.path,
+            operation: 'create',
+            requestResourceData: billPayload,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        }
+        setIsSaving(false); // Ensure button is re-enabled on failure
+      })
+      .finally(() => {
+        // This might run before navigation, so we only set saving to false on error.
+        // On success, the page will navigate away.
+        // A more robust solution might handle this differently, but this is fine for now.
       });
-      router.push(`/bill/${newBillRef.id}`);
-
-    } catch (e: any) {
-      console.error("Failed to save bill:", e);
-      toast({
-        title: "Save Failed",
-        description: `Failed to save bill. Please try again. ${e.message}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
-    }
   };
 
 
@@ -543,3 +566,5 @@ export function BillCreator() {
     </FormProvider>
   );
 }
+
+    
