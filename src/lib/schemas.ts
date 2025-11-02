@@ -8,8 +8,8 @@ export const billItemSchema = z.object({
 });
 
 export const billFormSchema = z.object({
-  sellerName: z.string().min(1, "Seller name is required.").default("J M K Trading"),
-  sellerAddress: z.string().min(1, "Seller address is required.").default("123 Market St, Anytown"),
+  sellerName: z.string().min(1, "Seller name is required.").default("JMK Trading"),
+  sellerAddress: z.string().min(1, "Seller address is required.").default("Shop No 3-4, Pliot No -1,Kh. No.796,Asola Bandh Road, Fatehpur Beri,New Delhi -110074"),
   sellerShopNumber: z.string().optional(),
   sellerOwnerNumber: z.string().optional(),
   clientName: z.string().min(1, "Client name is required."),
@@ -21,3 +21,5 @@ export const billFormSchema = z.object({
 });
 
 export type BillFormValues = z.infer<typeof billFormSchema>;
+
+    
