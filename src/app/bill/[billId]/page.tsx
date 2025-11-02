@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState, use } from 'react';
+import { useMemo, useState, use, useRef } from 'react';
 import { useUser, useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { Loader2, AlertCircle, QrCode } from 'lucide-react';
+import { Loader2, AlertCircle, QrCode, Share2, Download } from 'lucide-react';
 import { BillPreview } from '@/components/bill-preview';
 import type { BillFormValues } from '@/lib/schemas';
 import Link from 'next/link';
@@ -18,7 +18,17 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import QRCode from "qrcode.react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { useToast } from '@/hooks/use-toast';
+import { format } from "date-fns";
 
 
 interface BillPageProps {
@@ -28,12 +38,14 @@ interface BillPageProps {
 }
 
 export default function BillPage({ params }: BillPageProps) {
-  // Correctly unwrap the params promise using React.use()
   const { billId } = use(params);
   
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [isQrCodeOpen, setIsQrCodeOpen] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
   
   const billUrl = typeof window !== 'undefined' && user ? `${window.location.origin}/public/bill/${user.uid}/${billId}` : '';
 
@@ -62,6 +74,130 @@ export default function BillPage({ params }: BillPageProps) {
       items: itemsData,
     } as BillFormValues;
   }, [billData, itemsData]);
+
+  const handleDownloadPdf = async () => {
+    const element = printRef.current;
+    if (!element) {
+      toast({ title: "Error", description: "Could not find bill to print.", variant: "destructive" });
+      return;
+    }
+
+    setIsDownloadingPdf(true);
+    try {
+      const canvas = await html2canvas(element, {
+        scale: 2,
+      });
+      const data = canvas.toDataURL("image/png");
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "px",
+        format: [canvas.width, canvas.height],
+      });
+
+      pdf.addImage(data, "PNG", 0, 0, canvas.width, canvas.height);
+      pdf.save(`bill-${bill?.billNumber}.pdf`);
+    } catch (e) {
+      toast({ title: "Error", description: "Failed to generate PDF.", variant: "destructive" });
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
+  const handleExportCsv = () => {
+    if (!bill) {
+      toast({ title: "Error", description: "Bill data not available.", variant: "destructive" });
+      return;
+    }
+    const headers = ["Item Name", "Quantity", "Rate", "Amount"];
+    const rows = bill.items.map(item => {
+      const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+      return [item.itemName, item.quantity, item.rate, amount.toFixed(2)].join(',');
+    });
+
+    const subtotal = bill.items.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
+    const discountAmount = subtotal * ((Number(bill.discount) || 0) / 100);
+    const totalAmount = subtotal - discountAmount;
+    
+    const subtotalRow = `\nSubtotal,,,"${subtotal.toFixed(2)}"`;
+    const discountRow = `Discount (${bill.discount || 0}%),,,"-${discountAmount.toFixed(2)}"`;
+    const totalRow = `Total,,,"${totalAmount.toFixed(2)}"`;
+
+    const csvContent = [headers.join(','), ...rows, subtotalRow, discountRow, totalRow].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bill-${bill.billNumber}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!bill) {
+      toast({ title: "Error", description: "Bill data not available.", variant: "destructive" });
+      return;
+    }
+    const subtotal = bill.items.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
+    const discountAmount = subtotal * ((Number(bill.discount) || 0) / 100);
+    const totalAmount = subtotal - discountAmount;
+
+    let message = `*Invoice from ${bill.sellerName}*\n\n`;
+    message += `Bill To: ${bill.clientName}\n`;
+    message += `Bill #: ${bill.billNumber}\n`;
+    message += `Date: ${format(bill.date, "PPP")}\n\n`;
+    message += "*Items:*\n";
+    bill.items.forEach(item => {
+      const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+      message += `- ${item.itemName} (Qty: ${item.quantity}, Rate: ₹${item.rate}) - ₹${amount.toFixed(2)}\n`;
+    });
+    message += `\nSubtotal: ₹${subtotal.toFixed(2)}`;
+    if (bill.discount && bill.discount > 0) {
+      message += `\nDiscount (${bill.discount}%): -₹${discountAmount.toFixed(2)}`;
+    }
+    message += `\n*Total: ₹${totalAmount.toFixed(2)}*\n\n`;
+    message += `Thank you for your business!\n\n`;
+    message += `View the full bill here: ${billUrl}`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleShareEmail = () => {
+    if (!bill) {
+      toast({ title: "Error", description: "Bill data not available.", variant: "destructive" });
+      return;
+    }
+    const subtotal = bill.items.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
+    const discountAmount = subtotal * ((Number(bill.discount) || 0) / 100);
+    const totalAmount = subtotal - discountAmount;
+
+    const subject = `Invoice from ${bill.sellerName} - Bill #${bill.billNumber}`;
+    let body = `Hello ${bill.clientName},\n\nPlease find your invoice details below:\n\n`;
+    body += `Bill #: ${bill.billNumber}\n`;
+    body += `Date: ${format(bill.date, "PPP")}\n\n`;
+    body += `You can also view the full bill online here: ${billUrl}\n\n`;
+    body += "----------------------------------------\n";
+    bill.items.forEach(item => {
+        const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+        body += `Item: ${item.itemName}\n`;
+        body += `Qty: ${item.quantity}\n`;
+        body += `Rate: ₹${(Number(item.rate) || 0).toFixed(2)}\n`;
+        body += `Amount: ₹${amount.toFixed(2)}\n\n`;
+    });
+    body += "----------------------------------------\n";
+    body += `Subtotal: ₹${subtotal.toFixed(2)}\n`;
+    if (bill.discount && bill.discount > 0) {
+        body += `Discount (${bill.discount}%): -₹${discountAmount.toFixed(2)}\n`;
+    }
+    body += `Total: ₹${totalAmount.toFixed(2)}\n\n`;
+    body += `Thank you for your business!\n\nBest regards,\n${bill.sellerName}`;
+
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+  };
 
   if (isLoading) {
     return (
@@ -109,8 +245,24 @@ export default function BillPage({ params }: BillPageProps) {
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsQrCodeOpen(true)}>
                 <QrCode className="mr-2 h-4 w-4" />
-                Share via QR
+                QR Code
               </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <Share2 className="mr-2 h-4 w-4" /> Share
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onSelect={handleDownloadPdf} disabled={isDownloadingPdf}>
+                    {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    Download as PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleExportCsv}>Export as CSV</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleShareWhatsApp}>Share via WhatsApp</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={handleShareEmail}>Share via Email</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button asChild variant="outline">
                 <Link href="/bill/history">View History</Link>
               </Button>
@@ -120,7 +272,9 @@ export default function BillPage({ params }: BillPageProps) {
             </div>
           </div>
         </header>
-        <BillPreview bill={bill} />
+        <div ref={printRef}>
+          <BillPreview bill={bill} />
+        </div>
       </div>
 
       <AlertDialog open={isQrCodeOpen} onOpenChange={setIsQrCodeOpen}>
@@ -142,3 +296,5 @@ export default function BillPage({ params }: BillPageProps) {
     </>
   );
 }
+
+    
