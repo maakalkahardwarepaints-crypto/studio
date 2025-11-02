@@ -1,20 +1,35 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useUser, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useMemo, useState } from 'react';
+import { useUser, useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, AlertCircle, Eye } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { JMKTradingLogo } from '@/components/icons';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
+
 
 export default function BillHistoryPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
+  const [billToDelete, setBillToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const billsCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -31,6 +46,40 @@ export default function BillHistoryPage() {
       return dateB - dateA;
     });
   }, [bills]);
+
+  const handleDeleteBill = async () => {
+    if (!user || !firestore || !billToDelete) {
+        toast({ title: 'Error', description: 'Could not delete bill. User or bill ID is missing.', variant: 'destructive' });
+        return;
+    }
+    setIsDeleting(true);
+
+    try {
+        const billRef = doc(firestore, `users/${user.uid}/bills/${billToDelete}`);
+        const itemsRef = collection(billRef, 'items');
+
+        // Delete all items in the subcollection first
+        const itemsSnapshot = await getDocs(itemsRef);
+        const deletePromises = itemsSnapshot.docs.map((itemDoc) => deleteDoc(itemDoc.ref));
+        await Promise.all(deletePromises);
+
+        // Then delete the bill document itself
+        await deleteDoc(billRef);
+        
+        toast({ title: 'Success', description: 'Bill deleted successfully.' });
+
+    } catch (e: any) {
+        const permissionError = new FirestorePermissionError({
+            path: `users/${user.uid}/bills/${billToDelete}`,
+            operation: 'delete',
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    } finally {
+        setIsDeleting(false);
+        setBillToDelete(null);
+    }
+  };
+
 
   if (isUserLoading || (user && isLoadingBills)) {
     return (
@@ -65,6 +114,7 @@ export default function BillHistoryPage() {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
@@ -93,7 +143,7 @@ export default function BillHistoryPage() {
                       <TableHead>Client Name</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -105,12 +155,17 @@ export default function BillHistoryPage() {
                           {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
                         </TableCell>
                         <TableCell className="text-right">₹{bill.totalAmount.toFixed(2)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <Button asChild variant="ghost" size="icon">
                             <Link href={`/bill/${bill.id}`} aria-label="View Bill">
                               <Eye className="h-4 w-4" />
                             </Link>
                           </Button>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => setBillToDelete(bill.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -130,5 +185,24 @@ export default function BillHistoryPage() {
         </Card>
       </main>
     </div>
+     <AlertDialog open={!!billToDelete} onOpenChange={(isOpen) => !isOpen && setBillToDelete(null)}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the bill
+                and all of its associated data from our servers.
+            </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteBill} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Delete
+            </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }
