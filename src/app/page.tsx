@@ -27,9 +27,6 @@ export default function Home() {
             <Button asChild size="lg" variant="secondary">
                 <Link href="/bill/history">View Bill History</Link>
             </Button>
-            <Button asChild size="lg" variant="secondary">
-                <Link href="/profit-loss">Profit and Loss</Link>
-            </Button>
         </div>
       </div>
     </main>
