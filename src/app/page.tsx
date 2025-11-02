@@ -11,6 +11,10 @@ export default function Home() {
       <div className="flex flex-col items-center justify-center text-center space-y-6">
         <div className="flex flex-col items-center gap-4 text-center">
          
+          <div className="mb-4">
+            <JMKTradingLogo className="h-32 w-32 text-foreground" />
+          </div>
+
           <div className="space-y-2">
             <h1 className="text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl font-headline">
               JMK Trading
