@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, collectionGroup, where } from 'firebase/firestore';
+import { collection, query, getDocs, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
@@ -28,7 +28,10 @@ interface Bill {
     totalAmount: number;
 }
 
-interface AggregatedItem extends Item {
+interface AggregatedItem {
+    id: string;
+    itemName: string;
+    quantity: number;
     totalRevenue: number;
     totalCost: number;
     totalProfit: number;
@@ -55,18 +58,8 @@ export default function ProfitLossPage() {
     if (!user) return null;
     return collection(firestore, `users/${user.uid}/bills`);
   }, [user, firestore]);
-  const { data: bills, isLoading: isLoadingBills, error: billsError } = useCollection<Bill>(billsQuery);
-  
-  const allItemsQuery = useMemoFirebase(() => {
-    if (!user) return null;
-    return query(
-        collectionGroup(firestore, 'items'),
-        where('__name__', '>=', `users/${user.uid}/`),
-        where('__name__', '<', `users/${user.uid}/\uf8ff`)
-    );
-  }, [user, firestore]);
 
-  const { data: items, isLoading: isLoadingItems, error: itemsError } = useCollection<Item>(allItemsQuery);
+  const { data: bills, isLoading: isLoadingBills, error: billsError } = useCollection<Bill>(billsQuery);
   
   const chartConfig = {
     profit: {
@@ -86,67 +79,61 @@ export default function ProfitLossPage() {
         return;
     }
     
-    if (isLoadingItems || isLoadingBills) {
+    if (isLoadingBills) {
       setIsLoading(true);
       return;
     }
 
-    if (itemsError || billsError) {
-        setError(itemsError?.message || billsError?.message || 'An error occurred');
+    if (billsError) {
+        setError(billsError?.message || 'An error occurred');
         setIsLoading(false);
         return;
     }
 
-    if (items && bills) {
-        const itemMap = new Map<string, AggregatedItem>();
-        items.forEach(item => {
-            const revenue = (Number(item.rate) || 0) * (Number(item.quantity) || 0);
-            const cost = (Number(item.cost) || 0) * (Number(item.quantity) || 0);
-            const profit = revenue - cost;
-            
-            const existing = itemMap.get(item.itemName);
-            if (existing) {
-                existing.quantity += Number(item.quantity) || 0;
-                existing.totalRevenue += revenue;
-                existing.totalCost += cost;
-                existing.totalProfit += profit;
-            } else {
-                itemMap.set(item.itemName, {
-                    ...item,
-                    quantity: Number(item.quantity) || 0,
-                    totalRevenue: revenue,
-                    totalCost: cost,
-                    totalProfit: profit,
-                });
-            }
-        });
-        const aggregated = Array.from(itemMap.values());
-        setAggregatedItems(aggregated);
-        
-        const totalRev = aggregated.reduce((sum, item) => sum + item.totalRevenue, 0);
-        const totalC = aggregated.reduce((sum, item) => sum + item.totalCost, 0);
-        const totalP = totalRev - totalC;
-        const margin = totalRev > 0 ? (totalP / totalRev) * 100 : 0;
-
-        setTotalRevenue(totalRev);
-        setTotalCost(totalC);
-        setTotalProfit(totalP);
-        setProfitMargin(margin);
-
-        const dailyProfit: { [key: string]: number } = {};
-        const monthlyProfit: { [key: string]: number } = {};
-        const yearlyProfit: { [key: string]: number } = {};
-        
+    if (bills && firestore) {
+        setIsLoading(true);
         const billItemsPromises = bills.map(bill => 
             getDocs(collection(firestore, `users/${user.uid}/bills/${bill.id}/items`))
-                .then(itemSnapshot => ({...bill, items: itemSnapshot.docs.map(d => d.data() as Item)}))
+                .then(itemSnapshot => {
+                    const items = itemSnapshot.docs.map(d => d.data() as Item);
+                    return {...bill, items};
+                })
         );
 
         Promise.all(billItemsPromises).then(billsWithItems => {
+            const itemMap = new Map<string, AggregatedItem>();
+            const dailyProfit: { [key: string]: number } = {};
+            const monthlyProfit: { [key: string]: number } = {};
+            const yearlyProfit: { [key: string]: number } = {};
+
             billsWithItems.forEach(bill => {
+                let billCost = 0;
+                bill.items.forEach(item => {
+                    const revenue = (Number(item.rate) || 0) * (Number(item.quantity) || 0);
+                    const cost = (Number(item.cost) || 0) * (Number(item.quantity) || 0);
+                    const profit = revenue - cost;
+                    billCost += cost;
+
+                    const existing = itemMap.get(item.itemName);
+                    if (existing) {
+                        existing.quantity += Number(item.quantity) || 0;
+                        existing.totalRevenue += revenue;
+                        existing.totalCost += cost;
+                        existing.totalProfit += profit;
+                    } else {
+                        itemMap.set(item.itemName, {
+                            id: item.id,
+                            itemName: item.itemName,
+                            quantity: Number(item.quantity) || 0,
+                            totalRevenue: revenue,
+                            totalCost: cost,
+                            totalProfit: profit,
+                        });
+                    }
+                });
+
                 const billDate = new Date(bill.date.seconds * 1000);
                 const billRevenue = bill.totalAmount;
-                const billCost = bill.items.reduce((acc, item) => acc + (Number(item.cost) || 0) * (Number(item.quantity) || 0), 0);
                 const billProfit = billRevenue - billCost;
 
                 const dayKey = format(startOfDay(billDate), 'yyyy-MM-dd');
@@ -157,6 +144,19 @@ export default function ProfitLossPage() {
                 monthlyProfit[monthKey] = (monthlyProfit[monthKey] || 0) + billProfit;
                 yearlyProfit[yearKey] = (yearlyProfit[yearKey] || 0) + billProfit;
             });
+            
+            const aggregated = Array.from(itemMap.values());
+            setAggregatedItems(aggregated);
+            
+            const totalRev = aggregated.reduce((sum, item) => sum + item.totalRevenue, 0);
+            const totalC = aggregated.reduce((sum, item) => sum + item.totalCost, 0);
+            const totalP = totalRev - totalC;
+            const margin = totalRev > 0 ? (totalP / totalRev) * 100 : 0;
+
+            setTotalRevenue(totalRev);
+            setTotalCost(totalC);
+            setTotalProfit(totalP);
+            setProfitMargin(margin);
             
             const formatChartData = (data: { [key: string]: number }, dateFormat: string) => 
               Object.entries(data)
@@ -177,10 +177,10 @@ export default function ProfitLossPage() {
             setIsLoading(false);
         });
 
-    } else {
+    } else if (!isLoadingBills) {
         setIsLoading(false);
     }
-  }, [user, isUserLoading, items, bills, isLoadingItems, isLoadingBills, itemsError, billsError, firestore]);
+  }, [user, isUserLoading, bills, isLoadingBills, billsError, firestore]);
 
 
   if (isLoading || isUserLoading) {
