@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { BillFormValues, billFormSchema } from "@/lib/schemas";
-import { getBillSummaryAction, saveBillAction } from "@/lib/actions";
+import { getBillSummaryAction } from "@/lib/actions";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -35,12 +35,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser, useAuth } from "@/firebase";
+import { useUser, useAuth, useFirestore } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { collection, doc, serverTimestamp, setDoc, addDoc } from "firebase/firestore";
 
 
 export function BillCreator() {
@@ -55,6 +56,7 @@ export function BillCreator() {
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
 
 
@@ -186,7 +188,7 @@ export function BillCreator() {
       return;
     }
 
-    if (!user) {
+    if (!user || !firestore) {
       toast({
         title: "Not Authenticated",
         description: "You must be signed in to save a bill.",
@@ -196,21 +198,62 @@ export function BillCreator() {
     }
 
     setIsSaving(true);
-    const result = await saveBillAction(form.getValues(), user.uid);
-    setIsSaving(false);
+    
+    try {
+      const billData = form.getValues();
+      const subtotal = billData.items.reduce(
+        (acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
+      const discountAmount = subtotal * ((Number(billData.discount) || 0) / 100);
+      const totalAmount = subtotal - discountAmount;
+      
+      const userBillsCollection = collection(firestore,`users/${user.uid}/bills`);
+      const newBillRef = doc(userBillsCollection);
 
-    if ("error" in result) {
-      toast({
-        title: "Save Failed",
-        description: result.error,
-        variant: "destructive",
-      });
-    } else {
+      const billPayload: any = {
+        id: newBillRef.id,
+        sellerName: billData.sellerName,
+        sellerAddress: billData.sellerAddress,
+        clientName: billData.clientName,
+        clientAddress: billData.clientAddress,
+        billNumber: billData.billNumber,
+        date: billData.date,
+        totalAmount,
+        discount: billData.discount || 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      
+      if (billData.sellerShopNumber) billPayload.sellerShopNumber = billData.sellerShopNumber;
+      if (billData.sellerOwnerNumber) billPayload.sellerOwnerNumber = billData.sellerOwnerNumber;
+
+      await setDoc(newBillRef, billPayload);
+
+      const itemsCollection = collection(newBillRef, 'items');
+      for (const item of billData.items) {
+        const itemData = {
+          itemName: item.itemName,
+          quantity: Number(item.quantity) || 0,
+          rate: Number(item.rate) || 0,
+          cost: Number(item.cost) || 0,
+        };
+        await addDoc(itemsCollection, itemData);
+      }
+
       toast({
         title: "Bill Saved!",
         description: "Your bill has been successfully saved.",
       });
-      router.push(`/bill/${result.billId}`);
+      router.push(`/bill/${newBillRef.id}`);
+
+    } catch (e: any) {
+      console.error("Failed to save bill:", e);
+      toast({
+        title: "Save Failed",
+        description: `Failed to save bill. Please try again. ${e.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -391,7 +434,7 @@ export function BillCreator() {
                     <FormLabel>Discount (%)</FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input type="number" placeholder="0" {...field} className="pl-8" />
+                        <Input type="number" placeholder="0" {...field} className="pl-8" value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />
                         <Percent className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       </div>
                     </FormControl>
