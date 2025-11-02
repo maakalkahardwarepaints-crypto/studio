@@ -15,15 +15,12 @@ import { firebaseConfig } from '@/firebase/config';
 
 // Helper function for server-side Firebase initialization
 function initializeServerFirebase() {
-    // A unique name is needed to avoid conflicts with the client-side app
-    const appName = `server-${new Date().getTime()}`;
-    const existingApp = getApps().find(app => app.name === appName);
-    if (existingApp) {
-        return existingApp;
+    if (getApps().some(app => app.name === 'server-app')) {
+        return getApp('server-app');
     }
     // When on the server, we can't rely on the automatic SDK configuration
     // that App Hosting provides on the client. We must use the config object.
-    return initializeApp(firebaseConfig, appName);
+    return initializeApp(firebaseConfig, 'server-app');
 }
 
 
