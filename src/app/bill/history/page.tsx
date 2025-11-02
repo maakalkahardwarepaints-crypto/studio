@@ -114,95 +114,93 @@ export default function BillHistoryPage() {
   }
 
   return (
-    <>
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <JMKTradingLogo className="h-8 w-8" />
-            <span className="font-bold text-foreground">JMK Trading</span>
-          </Link>
-          <Button asChild>
-            <Link href="/create-bill">Create New Bill</Link>
-          </Button>
-        </div>
-      </header>
-      <main className="container mx-auto p-4 md:p-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Bill History</CardTitle>
-            <CardDescription>A list of all your saved bills.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {sortedBills.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Bill #</TableHead>
-                      <TableHead>Client Name</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                      <TableHead className="text-center">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sortedBills.map((bill) => (
-                      <TableRow key={bill.id}>
-                        <TableCell className="font-medium">{bill.billNumber}</TableCell>
-                        <TableCell>{bill.clientName}</TableCell>
-                        <TableCell>
-                          {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
-                        </TableCell>
-                        <TableCell className="text-right">₹{bill.totalAmount.toFixed(2)}</TableCell>
-                        <TableCell className="text-center">
-                          <Button asChild variant="ghost" size="icon">
-                            <Link href={`/bill/${bill.id}`} aria-label="View Bill">
-                              <Eye className="h-4 w-4" />
-                            </Link>
-                          </Button>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => setBillToDelete(bill.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </AlertDialogTrigger>
-                        </TableCell>
+    <AlertDialog open={!!billToDelete} onOpenChange={(isOpen) => !isOpen && setBillToDelete(null)}>
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
+          <div className="container mx-auto flex h-16 items-center justify-between px-4">
+            <Link href="/" className="flex items-center gap-2">
+              <JMKTradingLogo className="h-8 w-8" />
+              <span className="font-bold text-foreground">Bill Book</span>
+            </Link>
+            <Button asChild>
+              <Link href="/create-bill">Create New Bill</Link>
+            </Button>
+          </div>
+        </header>
+        <main className="container mx-auto p-4 md:p-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Bill History</CardTitle>
+              <CardDescription>A list of all your saved bills.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {sortedBills.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Bill #</TableHead>
+                        <TableHead>Client Name</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <h3 className="text-xl font-semibold">No Bills Found</h3>
-                <p className="text-muted-foreground mt-2">You haven't saved any bills yet.</p>
-                <Button asChild className="mt-4">
-                  <Link href="/create-bill">Create Your First Bill</Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </main>
-    </div>
-     <AlertDialog open={!!billToDelete} onOpenChange={(isOpen) => !isOpen && setBillToDelete(null)}>
-        <AlertDialogContent>
-            <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete the bill
-                and all of its associated data from our servers.
-            </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteBill} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
-                {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Delete
-            </AlertDialogAction>
-            </AlertDialogFooter>
-        </AlertDialogContent>
+                    </TableHeader>
+                    <TableBody>
+                      {sortedBills.map((bill) => (
+                        <TableRow key={bill.id}>
+                          <TableCell className="font-medium">{bill.billNumber}</TableCell>
+                          <TableCell>{bill.clientName}</TableCell>
+                          <TableCell>
+                            {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-right">₹{bill.totalAmount.toFixed(2)}</TableCell>
+                          <TableCell className="text-center">
+                            <Button asChild variant="ghost" size="icon">
+                              <Link href={`/bill/${bill.id}`} aria-label="View Bill">
+                                <Eye className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => setBillToDelete(bill.id)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <h3 className="text-xl font-semibold">No Bills Found</h3>
+                  <p className="text-muted-foreground mt-2">You haven't saved any bills yet.</p>
+                  <Button asChild className="mt-4">
+                    <Link href="/create-bill">Create Your First Bill</Link>
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+      <AlertDialogContent>
+          <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the bill
+              and all of its associated data from our servers.
+          </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDeleteBill} disabled={isDeleting} className="bg-destructive hover:bg-destructive/90">
+              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+          </AlertDialogAction>
+          </AlertDialogFooter>
+      </AlertDialogContent>
     </AlertDialog>
-    </>
   );
 }
