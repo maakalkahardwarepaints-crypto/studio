@@ -1,16 +1,17 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs, collectionGroup, where, documentId } from 'firebase/firestore';
+import { collection, query, getDocs, collectionGroup, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 import { JMKTradingLogo } from '@/components/icons';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
-import { ChartConfig, ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { format, startOfDay, startOfMonth, startOfYear } from 'date-fns';
 
 interface Item {
@@ -55,14 +56,13 @@ export default function ProfitLossPage() {
     return collection(firestore, `users/${user.uid}/bills`);
   }, [user, firestore]);
   const { data: bills, isLoading: isLoadingBills, error: billsError } = useCollection<Bill>(billsQuery);
-
+  
   const allItemsQuery = useMemoFirebase(() => {
-    if (!user || !firestore) return null;
-    const userItemsPath = `users/${user.uid}`;
+    if (!user) return null;
     return query(
-        collectionGroup(firestore, 'items'),
-        where(documentId(), '>=', userItemsPath),
-        where(documentId(), '<', userItemsPath + 'z')
+      collectionGroup(firestore, 'items'),
+      where('__name__', '>=', `users/${user.uid}/`),
+      where('__name__', '<', `users/${user.uid}/\uf8ff`)
     );
   }, [user, firestore]);
   const { data: items, isLoading: isLoadingItems, error: itemsError } = useCollection<Item>(allItemsQuery);
@@ -181,7 +181,6 @@ export default function ProfitLossPage() {
     } else {
         setIsLoading(false);
     }
-
   }, [user, isUserLoading, items, bills, isLoadingItems, isLoadingBills, itemsError, billsError, firestore]);
 
 
@@ -217,51 +216,53 @@ export default function ProfitLossPage() {
     );
   }
 
-  const ChartCard = ({ title, data, config }: { title: string; data: any[]; config: ChartConfig }) => (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {data.length > 0 ? (
-          <ChartContainer config={config} className="h-[250px] w-full">
-            <BarChart accessibilityLayer data={data}>
-                <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    tickFormatter={(value) => value}
-                />
-                <YAxis
-                    tickFormatter={(value) => `₹${value}`}
-                />
-                <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent 
-                        formatter={(value, name) => (
-                           <div className="flex items-center gap-2">
-                             <div className={`h-2.5 w-2.5 rounded-sm bg-${name === 'profit' ? 'green' : 'red'}-500`} />
-                             <div>
-                               <p className="font-medium">{name === 'profit' ? 'Profit' : 'Loss'}</p>
-                               <p className="text-sm text-muted-foreground">₹{value.toLocaleString()}</p>
-                              </div>
-                           </div>
-                        )}
-                    />}
-                />
-                <Bar dataKey="profit" fill="var(--color-profit)" radius={4} />
-                <Bar dataKey="loss" fill="var(--color-loss)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        ) : (
-          <div className="text-center py-10">
-            <p className="text-muted-foreground">No data available for this period.</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
+  const ChartCard = ({ title, data, config }: { title: string; data: any[]; config: ChartConfig }) => {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.length > 0 ? (
+            <ChartContainer config={config} className="h-[250px] w-full">
+              <BarChart accessibilityLayer data={data}>
+                  <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                      tickFormatter={(value) => value}
+                  />
+                  <YAxis
+                      tickFormatter={(value) => `₹${value}`}
+                  />
+                  <ChartTooltip
+                      cursor={false}
+                      content={<ChartTooltipContent 
+                          formatter={(value, name) => (
+                             <div className="flex items-center gap-2">
+                               <div className={`h-2.5 w-2.5 rounded-sm bg-${name === 'profit' ? 'green' : 'red'}-500`} />
+                               <div>
+                                 <p className="font-medium">{name === 'profit' ? 'Profit' : 'Loss'}</p>
+                                 <p className="text-sm text-muted-foreground">₹{typeof value === 'number' ? value.toLocaleString() : value}</p>
+                                </div>
+                             </div>
+                          )}
+                      />}
+                  />
+                  <Bar dataKey="profit" fill="var(--color-profit)" radius={4} />
+                  <Bar dataKey="loss" fill="var(--color-loss)" radius={4} />
+              </BarChart>
+            </ChartContainer>
+          ) : (
+            <div className="text-center py-10">
+              <p className="text-muted-foreground">No data available for this period.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -343,7 +344,7 @@ export default function ProfitLossPage() {
             <CardHeader>
                 <CardTitle>All Items Sold</CardTitle>
                 <CardDescription>A detailed list of all items from your bills, aggregated by item name.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent>
              {aggregatedItems && aggregatedItems.length > 0 ? (
                 <div className="overflow-x-auto">
