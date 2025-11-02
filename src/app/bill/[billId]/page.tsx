@@ -28,17 +28,18 @@ interface BillPageProps {
 }
 
 export default function BillPage({ params }: BillPageProps) {
+  const { billId } = params;
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const [isQrCodeOpen, setIsQrCodeOpen] = useState(false);
   
-  const billUrl = typeof window !== 'undefined' && user ? `${window.location.origin}/public/bill/${user.uid}/${params.billId}` : '';
+  const billUrl = typeof window !== 'undefined' && user ? `${window.location.origin}/public/bill/${user.uid}/${billId}` : '';
 
 
   const billDocRef = useMemoFirebase(() => {
-    if (!user || !params.billId) return null;
-    return doc(firestore, `users/${user.uid}/bills/${params.billId}`);
-  }, [firestore, user, params]);
+    if (!user || !billId) return null;
+    return doc(firestore, `users/${user.uid}/bills/${billId}`);
+  }, [firestore, user, billId]);
   
   const itemsCollectionRef = useMemoFirebase(() => {
     if (!billDocRef) return null;
