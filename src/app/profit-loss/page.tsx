@@ -64,11 +64,11 @@ export default function ProfitLossPage() {
   const chartConfig = {
     profit: {
       label: "Profit",
-      color: "hsl(var(--chart-2))",
+      color: "#00c853",
     },
     loss: {
       label: "Loss",
-      color: "hsl(var(--chart-5))",
+      color: "#d50000",
     },
   } satisfies ChartConfig
 
@@ -161,12 +161,11 @@ export default function ProfitLossPage() {
             
             const formatChartData = (data: { [key: string]: number }, dateFormat: string) => 
               Object.entries(data)
-                .map(([date, profit]) => ({
-                  date, // Keep original date string for sorting
+                .map(([date, value]) => ({
+                  date,
                   formattedDate: format(new Date(date), dateFormat),
-                  profit: profit >= 0 ? profit : 0,
-                  loss: profit < 0 ? Math.abs(profit) : 0,
-                  value: profit,
+                  profit: value >= 0 ? value : 0,
+                  loss: value < 0 ? Math.abs(value) : 0,
                 }))
                 .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -218,7 +217,7 @@ export default function ProfitLossPage() {
     );
   }
 
-  const ChartCard = ({ title, data, config }: { title: string; data: any[]; config: ChartConfig }) => {
+  const ChartCard = ({ title, data }: { title: string; data: any[]}) => {
     return (
       <Card>
         <CardHeader>
@@ -226,16 +225,28 @@ export default function ProfitLossPage() {
         </CardHeader>
         <CardContent>
           {data.length > 0 ? (
-            <ChartContainer config={config} className="h-[250px] w-full">
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
                <AreaChart
-                accessibilityLayer
                 data={data}
                 margin={{
-                  left: 12,
-                  right: 12,
+                  left: 0,
+                  right: 20,
+                  top: 5,
+                  bottom: 5,
                 }}
               >
-                <CartesianGrid vertical={false} />
+                <defs>
+                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00c853" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#00c853" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorLoss" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#d50000" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#d50000" stopOpacity={0}/>
+                    </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="formattedDate"
                   tickLine={false}
@@ -245,55 +256,52 @@ export default function ProfitLossPage() {
                 />
                  <YAxis
                       tickFormatter={(value) => `₹${value}`}
+                      width={80}
                   />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="dot" />}
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (active && payload && payload.length) {
+                      const profit = payload.find(p => p.dataKey === 'profit')?.value as number || 0;
+                      const loss = payload.find(p => p.dataKey === 'loss')?.value as number || 0;
+                      const net = profit - loss;
+
+                      return (
+                        <div className="rounded-lg border bg-background p-2 shadow-sm">
+                          <div className="grid grid-cols-1 gap-2">
+                            <div className="flex flex-col">
+                              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                                {label}
+                              </span>
+                              <span className={`font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {`₹${net.toFixed(2)}`}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  }}
                 />
-                <defs>
-                  <linearGradient id="fillProfit" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--color-profit)"
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--color-profit)"
-                      stopOpacity={0.1}
-                    />
-                  </linearGradient>
-                  <linearGradient id="fillLoss" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--color-loss)"
-                      stopOpacity={0.8}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--color-loss)"
-                      stopOpacity={0.1}
-                    />
-                  </linearGradient>
-                </defs>
                  <Area
+                  type="monotone"
                   dataKey="profit"
-                  type="natural"
-                  fill="url(#fillProfit)"
-                  fillOpacity={0.4}
-                  stroke="var(--color-profit)"
-                  stackId="a"
+                  stroke="#00c853"
+                  fillOpacity={1}
+                  fill="url(#colorProfit)"
+                  stackId="1"
                 />
                  <Area
+                  type="monotone"
                   dataKey="loss"
-                  type="natural"
-                  fill="url(#fillLoss)"
-                  fillOpacity={0.4}
-                  stroke="var(--color-loss)"
-                  stackId="a"
+                  stroke="#d50000"
+                  fillOpacity={1}
+                  fill="url(#colorLoss)"
+                  stackId="1"
                 />
               </AreaChart>
-            </ChartContainer>
+              </ResponsiveContainer>
+            </div>
           ) : (
             <div className="text-center py-10">
               <p className="text-muted-foreground">No data available for this period.</p>
@@ -375,9 +383,9 @@ export default function ProfitLossPage() {
         </Card>
         
         <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-8">
-            <ChartCard title="Daily Profit/Loss" data={dailyData} config={chartConfig} />
-            <ChartCard title="Monthly Profit/Loss" data={monthlyData} config={chartConfig} />
-            <ChartCard title="Yearly Profit/Loss" data={yearlyData} config={chartConfig} />
+            <ChartCard title="Daily Profit/Loss" data={dailyData} />
+            <ChartCard title="Monthly Profit/Loss" data={monthlyData} />
+            <ChartCard title="Yearly Profit/Loss" data={yearlyData} />
         </div>
 
         <Card>
@@ -423,5 +431,7 @@ export default function ProfitLossPage() {
     </div>
   );
 }
+
+    
 
     
