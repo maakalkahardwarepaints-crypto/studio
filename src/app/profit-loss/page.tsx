@@ -9,6 +9,9 @@ import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'luci
 import { JMKTradingLogo } from '@/components/icons';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
+import { ChartConfig, ChartContainer, ChartTooltipContent } from "@/components/ui/chart"
+import { format, startOfDay, startOfMonth, startOfYear } from 'date-fns';
 
 interface Item {
   id: string;
@@ -16,6 +19,12 @@ interface Item {
   quantity: number;
   rate: number;
   cost: number;
+}
+
+interface Bill {
+    id: string;
+    date: { seconds: number; nanoseconds: number };
+    totalAmount: number;
 }
 
 interface AggregatedItem extends Item {
@@ -37,10 +46,18 @@ export default function ProfitLossPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [dailyData, setDailyData] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [yearlyData, setYearlyData] = useState<any[]>([]);
+
+  const billsQuery = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, `users/${user.uid}/bills`);
+  }, [user, firestore]);
+  const { data: bills, isLoading: isLoadingBills, error: billsError } = useCollection<Bill>(billsQuery);
+
   const allItemsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    // Constrain the collection group query to the user's path.
-    // This is required by the security rules.
     const userItemsPath = `users/${user.uid}`;
     return query(
         collectionGroup(firestore, 'items'),
@@ -48,8 +65,18 @@ export default function ProfitLossPage() {
         where(documentId(), '<', userItemsPath + 'z')
     );
   }, [user, firestore]);
-
   const { data: items, isLoading: isLoadingItems, error: itemsError } = useCollection<Item>(allItemsQuery);
+  
+  const chartConfig = {
+    profit: {
+      label: "Profit",
+      color: "hsl(var(--chart-2))",
+    },
+    loss: {
+      label: "Loss",
+      color: "hsl(var(--chart-5))",
+    },
+  } satisfies ChartConfig
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -58,20 +85,20 @@ export default function ProfitLossPage() {
         return;
     }
     
-    if (isLoadingItems) {
+    if (isLoadingItems || isLoadingBills) {
       setIsLoading(true);
       return;
     }
 
-    if (itemsError) {
-        setError(itemsError.message);
+    if (itemsError || billsError) {
+        setError(itemsError?.message || billsError?.message || 'An error occurred');
         setIsLoading(false);
         return;
     }
 
-    if (items) {
+    if (items && bills) {
+        // Items aggregation logic
         const itemMap = new Map<string, AggregatedItem>();
-
         items.forEach(item => {
             const revenue = (Number(item.rate) || 0) * (Number(item.quantity) || 0);
             const cost = (Number(item.cost) || 0) * (Number(item.quantity) || 0);
@@ -93,7 +120,6 @@ export default function ProfitLossPage() {
                 });
             }
         });
-        
         const aggregated = Array.from(itemMap.values());
         setAggregatedItems(aggregated);
         
@@ -106,11 +132,57 @@ export default function ProfitLossPage() {
         setTotalCost(totalC);
         setTotalProfit(totalP);
         setProfitMargin(margin);
-    }
-    
-    setIsLoading(false);
 
-  }, [user, isUserLoading, items, isLoadingItems, itemsError]);
+        // Chart data aggregation
+        const dailyProfit: { [key: string]: number } = {};
+        const monthlyProfit: { [key: string]: number } = {};
+        const yearlyProfit: { [key: string]: number } = {};
+        
+        const billItemsPromises = bills.map(bill => 
+            getDocs(collection(firestore, `users/${user.uid}/bills/${bill.id}/items`))
+                .then(itemSnapshot => ({...bill, items: itemSnapshot.docs.map(d => d.data() as Item)}))
+        );
+
+        Promise.all(billItemsPromises).then(billsWithItems => {
+            billsWithItems.forEach(bill => {
+                const billDate = new Date(bill.date.seconds * 1000);
+                const billRevenue = bill.totalAmount; // Assuming totalAmount is revenue
+                const billCost = bill.items.reduce((acc, item) => acc + (Number(item.cost) || 0) * (Number(item.quantity) || 0), 0);
+                const billProfit = billRevenue - billCost;
+
+                const dayKey = format(startOfDay(billDate), 'yyyy-MM-dd');
+                const monthKey = format(startOfMonth(billDate), 'yyyy-MM');
+                const yearKey = format(startOfYear(billDate), 'yyyy');
+
+                dailyProfit[dayKey] = (dailyProfit[dayKey] || 0) + billProfit;
+                monthlyProfit[monthKey] = (monthlyProfit[monthKey] || 0) + billProfit;
+                yearlyProfit[yearKey] = (yearlyProfit[yearKey] || 0) + billProfit;
+            });
+            
+            const formatChartData = (data: { [key: string]: number }, dateFormat: string) => 
+              Object.entries(data)
+                .map(([date, profit]) => ({
+                  date: format(new Date(date), dateFormat),
+                  profit: profit >= 0 ? profit : 0,
+                  loss: profit < 0 ? Math.abs(profit) : 0,
+                }))
+                .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+            setDailyData(formatChartData(dailyProfit, 'MMM d'));
+            setMonthlyData(formatChartData(monthlyProfit, 'MMM yyyy'));
+            setYearlyData(formatChartData(yearlyProfit, 'yyyy'));
+
+            setIsLoading(false);
+        }).catch(err => {
+            setError(err.message);
+            setIsLoading(false);
+        });
+
+    } else {
+        setIsLoading(false);
+    }
+
+  }, [user, isUserLoading, items, bills, isLoadingItems, isLoadingBills, itemsError, billsError, firestore]);
 
 
   if (isLoading || isUserLoading) {
@@ -144,6 +216,52 @@ export default function ProfitLossPage() {
       </div>
     );
   }
+
+  const ChartCard = ({ title, data, config }: { title: string; data: any[]; config: ChartConfig }) => (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {data.length > 0 ? (
+          <ChartContainer config={config} className="h-[250px] w-full">
+            <BarChart accessibilityLayer data={data}>
+                <XAxis
+                    dataKey="date"
+                    tickLine={false}
+                    axisLine={false}
+                    tickMargin={8}
+                    tickFormatter={(value) => value}
+                />
+                <YAxis
+                    tickFormatter={(value) => `₹${value}`}
+                />
+                <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent 
+                        formatter={(value, name) => (
+                           <div className="flex items-center gap-2">
+                             <div className={`h-2.5 w-2.5 rounded-sm bg-${name === 'profit' ? 'green' : 'red'}-500`} />
+                             <div>
+                               <p className="font-medium">{name === 'profit' ? 'Profit' : 'Loss'}</p>
+                               <p className="text-sm text-muted-foreground">₹{value.toLocaleString()}</p>
+                              </div>
+                           </div>
+                        )}
+                    />}
+                />
+                <Bar dataKey="profit" fill="var(--color-profit)" radius={4} />
+                <Bar dataKey="loss" fill="var(--color-loss)" radius={4} />
+            </BarChart>
+          </ChartContainer>
+        ) : (
+          <div className="text-center py-10">
+            <p className="text-muted-foreground">No data available for this period.</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -214,6 +332,12 @@ export default function ProfitLossPage() {
                 </div>
             </CardContent>
         </Card>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8 mb-8">
+            <ChartCard title="Daily Profit/Loss" data={dailyData} config={chartConfig} />
+            <ChartCard title="Monthly Profit/Loss" data={monthlyData} config={chartConfig} />
+            <ChartCard title="Yearly Profit/Loss" data={yearlyData} config={chartConfig} />
+        </div>
 
         <Card>
             <CardHeader>
