@@ -58,7 +58,7 @@ service cloud.firestore {
      * @principle Enforces ownership for collection group queries.
      */
     match /{path=**}/items/{itemId} {
-      allow list: if isSignedIn() && path.split('/')[1] == request.auth.uid;
+       allow list: if isSignedIn() && path[0] == 'users' && path[1] == request.auth.uid;
     }
 
 
