@@ -260,26 +260,106 @@ export function BillCreator() {
       })
       .catch((error) => {
         // This will catch the bill creation error or any propagated item creation error
-        if (error instanceof FirestorePermissionError) {
-          // Error already emitted, just update UI state
-        } else {
-          // This is the catch for the bill setDoc itself
-          const permissionError = new FirestorePermissionError({
-            path: newBillRef.path,
-            operation: 'create',
-            requestResourceData: billPayload,
-          });
-          errorEmitter.emit('permission-error', permissionError);
+        if (!(error instanceof FirestorePermissionError)) {
+            // This is the catch for the bill setDoc itself
+            const permissionError = new FirestorePermissionError({
+                path: newBillRef.path,
+                operation: 'create',
+                requestResourceData: billPayload,
+            });
+            errorEmitter.emit('permission-error', permissionError);
         }
         setIsSaving(false); // Ensure button is re-enabled on failure
       })
       .finally(() => {
         // This might run before navigation, so we only set saving to false on error.
-        // On success, the page will navigate away.
         // A more robust solution might handle this differently, but this is fine for now.
       });
   };
 
+  const handleExportCsv = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) {
+      toast({ title: "Invalid Form", description: "Please fill out the form correctly before exporting.", variant: "destructive" });
+      return;
+    }
+    const billData = form.getValues();
+    const headers = ["Item Name", "Quantity", "Rate", "Amount"];
+    const rows = billData.items.map(item => {
+      const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+      return [item.itemName, item.quantity, item.rate, amount.toFixed(2)].join(',');
+    });
+
+    const subtotalRow = `\nSubtotal,,,"${subtotal.toFixed(2)}"`;
+    const discountRow = `Discount (${billData.discount || 0}%),,,"-${discountAmount.toFixed(2)}"`;
+    const totalRow = `Total,,,"${totalAmount.toFixed(2)}"`;
+
+    const csvContent = [headers.join(','), ...rows, subtotalRow, discountRow, totalRow].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `bill-${billData.billNumber}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleShareWhatsApp = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) {
+      toast({ title: "Invalid Form", description: "Please fill out the form correctly before sharing.", variant: "destructive" });
+      return;
+    }
+    const billData = form.getValues();
+    let message = `*Invoice from ${billData.sellerName}*\n\n`;
+    message += `Bill To: ${billData.clientName}\n`;
+    message += `Bill #: ${billData.billNumber}\n`;
+    message += `Date: ${format(billData.date, "PPP")}\n\n`;
+    message += "*Items:*\n";
+    billData.items.forEach(item => {
+      const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+      message += `- ${item.itemName} (Qty: ${item.quantity}, Rate: ₹${item.rate}) - ₹${amount.toFixed(2)}\n`;
+    });
+    message += `\nSubtotal: ₹${subtotal.toFixed(2)}`;
+    if (billData.discount && billData.discount > 0) {
+      message += `\nDiscount (${billData.discount}%): -₹${discountAmount.toFixed(2)}`;
+    }
+    message += `\n*Total: ₹${totalAmount.toFixed(2)}*\n\n`;
+    message += `Thank you for your business!`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleShareEmail = async () => {
+    const isValid = await form.trigger();
+    if (!isValid) {
+      toast({ title: "Invalid Form", description: "Please fill out the form correctly before sharing.", variant: "destructive" });
+      return;
+    }
+    const billData = form.getValues();
+    const subject = `Invoice from ${billData.sellerName} - Bill #${billData.billNumber}`;
+    let body = `Hello ${billData.clientName},\n\nPlease find your invoice details below:\n\n`;
+    body += `Bill #: ${billData.billNumber}\n`;
+    body += `Date: ${format(billData.date, "PPP")}\n\n`;
+    body += "----------------------------------------\n";
+    billData.items.forEach(item => {
+      const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+      body += `${item.itemName.padEnd(20)} | Qty: ${item.quantity} | Rate: ₹${item.rate.toFixed(2)} | Amount: ₹${amount.toFixed(2)}\n`;
+    });
+    body += "----------------------------------------\n";
+    body += `Subtotal: ₹${subtotal.toFixed(2)}\n`;
+    if (billData.discount && billData.discount > 0) {
+      body += `Discount (${billData.discount}%): -₹${discountAmount.toFixed(2)}\n`;
+    }
+    body += `Total: ₹${totalAmount.toFixed(2)}\n\n`;
+    body += `Thank you for your business!\n\nBest regards,\n${billData.sellerName}`;
+
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl, '_blank');
+  };
 
   return (
     <FormProvider {...form}>
@@ -505,9 +585,9 @@ export function BillCreator() {
                   {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   Download as PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => toast({title: "Coming Soon!", description: "Excel sharing will be available soon."})}>As Excel</DropdownMenuItem>
-                 <DropdownMenuItem onSelect={() => toast({title: "Coming Soon!", description: "WhatsApp sharing will be available soon."})}>Via WhatsApp</DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => toast({title: "Coming Soon!", description: "Email sharing will be available soon."})}>Via Email</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleExportCsv}>As Excel (CSV)</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleShareWhatsApp}>Via WhatsApp</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleShareEmail}>Via Email</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button onClick={handleSaveBill} disabled={isSaving || isUserLoading}>
@@ -566,5 +646,3 @@ export function BillCreator() {
     </FormProvider>
   );
 }
-
-    
