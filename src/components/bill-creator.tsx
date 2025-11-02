@@ -71,8 +71,8 @@ export function BillCreator() {
     defaultValues: {
       sellerName: "JMK Trading",
       sellerAddress: "Shop No 3-4, Pliot No -1,Kh. No.796,Asola Bandh Road, Fatehpur Beri,New Delhi -110074",
-      sellerShopNumber: "S-15",
-      sellerOwnerNumber: "+1 (555) 123-4567",
+      sellerShopNumber: "011-41079296",
+      sellerOwnerNumber: "7479633348",
       clientName: "",
       clientAddress: "",
       billNumber: "",
@@ -330,8 +330,8 @@ export function BillCreator() {
   const handleShareEmail = async () => {
     const isValid = await form.trigger();
     if (!isValid) {
-      toast({ title: "Invalid Form", description: "Please fill out the form correctly before sharing.", variant: "destructive" });
-      return;
+        toast({ title: "Invalid Form", description: "Please fill out the form correctly before sharing.", variant: "destructive" });
+        return;
     }
     const billData = form.getValues();
     const subject = `Invoice from ${billData.sellerName} - Bill #${billData.billNumber}`;
@@ -353,7 +353,6 @@ export function BillCreator() {
     }
     body += `Total: ₹${totalAmount.toFixed(2)}\n\n`;
     body += `Thank you for your business!\n\nBest regards,\n${billData.sellerName}`;
-
 
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoUrl;
@@ -644,6 +643,8 @@ export function BillCreator() {
     </FormProvider>
   );
 }
+
+    
 
     
 
