@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, use } from 'react';
 import { useUser, useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
 import { Loader2, AlertCircle } from 'lucide-react';
@@ -86,7 +86,7 @@ export default function BillPage({ params }: BillPageProps) {
         <div className="flex justify-between items-center">
             <Link href="/" className="flex items-center gap-2">
                 <JMKTradingLogo className="h-8 w-8" />
-                <span className="font-bold text-foreground">JMK Trading</span>
+                <span className="font-bold text-foreground">Bill Book</span>
             </Link>
            <div className="flex gap-2">
             <Button asChild variant="outline">
