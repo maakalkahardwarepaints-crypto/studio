@@ -489,6 +489,7 @@ export function BillCreator() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[60px]">S.No</TableHead>
                     <TableHead className="min-w-[250px]">Item Name</TableHead>
                     <TableHead>Qty</TableHead>
                     <TableHead>Cost</TableHead>
@@ -505,6 +506,7 @@ export function BillCreator() {
                     const amount = quantity * rate;
                     return (
                       <TableRow key={field.id}>
+                        <TableCell>{index + 1}</TableCell>
                         <TableCell><FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (<Input placeholder="E.g. T-Shirt" {...field} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (<Input type="number" placeholder="10.00" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
@@ -530,7 +532,8 @@ export function BillCreator() {
                 const rate = parseFloat(String(item?.rate)) || 0;
                 const amount = quantity * rate;
                 return (
-                  <Card key={field.id} className="relative pt-6">
+                  <Card key={field.id} className="relative pt-8">
+                    <span className="absolute top-2 left-3 font-bold text-muted-foreground">#{index + 1}</span>
                     <CardContent className="space-y-4">
                       <FormField name={`items.${index}.itemName`} control={form.control} render={({ field }) => (
                           <FormItem>
@@ -701,4 +704,3 @@ export function BillCreator() {
     
 
     
-

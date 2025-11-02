@@ -44,7 +44,8 @@ export function BillPreview({ bill }: BillPreviewProps) {
         <Table className="mb-8 min-w-[600px]">
           <TableHeader className="bg-gray-100">
             <TableRow>
-              <TableHead className="w-[50%]">Item Description</TableHead>
+              <TableHead className="w-[60px]">S.No</TableHead>
+              <TableHead className="w-[45%]">Item Description</TableHead>
               <TableHead className="text-right">Quantity</TableHead>
               <TableHead className="text-right">Rate</TableHead>
               <TableHead className="text-right">Amount</TableHead>
@@ -57,6 +58,7 @@ export function BillPreview({ bill }: BillPreviewProps) {
               const amount = quantity * rate;
               return (
                 <TableRow key={index}>
+                  <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">{item.itemName}</TableCell>
                   <TableCell className="text-right">{quantity.toLocaleString()}</TableCell>
                   <TableCell className="text-right">₹{(rate).toFixed(2)}</TableCell>
