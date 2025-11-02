@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'JMK Trading Bill Book',
+  title: 'Bill Book',
   description: 'Simple and easy-to-use billing application',
 };
 
