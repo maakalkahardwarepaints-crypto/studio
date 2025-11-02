@@ -146,6 +146,7 @@ export default function ProfitLossPage() {
             });
             
             const aggregated = Array.from(itemMap.values());
+            aggregated.sort((a, b) => b.totalRevenue - a.totalRevenue);
             setAggregatedItems(aggregated);
             
             const totalRev = aggregated.reduce((sum, item) => sum + item.totalRevenue, 0);
@@ -342,7 +343,7 @@ export default function ProfitLossPage() {
         <Card>
             <CardHeader>
                 <CardTitle>All Items Sold</CardTitle>
-                <CardDescription>A detailed list of all items from your bills, aggregated by item name.</CardDescription>
+                <CardDescription>A detailed list of all items from your bills, sorted by total sales revenue.</CardDescription>
             </CardHeader>
             <CardContent>
              {aggregatedItems && aggregatedItems.length > 0 ? (
