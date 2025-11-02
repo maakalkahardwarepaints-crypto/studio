@@ -38,7 +38,7 @@ interface BillPageProps {
 }
 
 export default function BillPage({ params }: BillPageProps) {
-  const { billId } = use(params);
+  const { billId } = params;
   
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -72,6 +72,7 @@ export default function BillPage({ params }: BillPageProps) {
       ...billData,
       date: billData.date ? new Date(billData.date.seconds * 1000) : new Date(),
       items: itemsData,
+      currency: billData.currency || "₹",
     } as BillFormValues;
   }, [billData, itemsData]);
 
@@ -143,6 +144,7 @@ export default function BillPage({ params }: BillPageProps) {
     const subtotal = bill.items.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
     const discountAmount = subtotal * ((Number(bill.discount) || 0) / 100);
     const totalAmount = subtotal - discountAmount;
+    const currency = bill.currency || "₹";
 
     let message = `*Invoice from ${bill.sellerName}*\n\n`;
     message += `Bill To: ${bill.clientName}\n`;
@@ -151,13 +153,13 @@ export default function BillPage({ params }: BillPageProps) {
     message += "*Items:*\n";
     bill.items.forEach(item => {
       const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
-      message += `- ${item.itemName} (Qty: ${item.quantity}, Rate: ₹${item.rate}) - ₹${amount.toFixed(2)}\n`;
+      message += `- ${item.itemName} (Qty: ${item.quantity}, Rate: ${currency}${item.rate}) - ${currency}${amount.toFixed(2)}\n`;
     });
-    message += `\nSubtotal: ₹${subtotal.toFixed(2)}`;
+    message += `\nSubtotal: ${currency}${subtotal.toFixed(2)}`;
     if (bill.discount && bill.discount > 0) {
-      message += `\nDiscount (${bill.discount}%): -₹${discountAmount.toFixed(2)}`;
+      message += `\nDiscount (${bill.discount}%): -${currency}${discountAmount.toFixed(2)}`;
     }
-    message += `\n*Total: ₹${totalAmount.toFixed(2)}*\n\n`;
+    message += `\n*Total: ${currency}${totalAmount.toFixed(2)}*\n\n`;
     message += `Thank you for your business!\n\n`;
     message += `View the full bill here: ${billUrl}`;
 
@@ -173,6 +175,7 @@ export default function BillPage({ params }: BillPageProps) {
     const subtotal = bill.items.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
     const discountAmount = subtotal * ((Number(bill.discount) || 0) / 100);
     const totalAmount = subtotal - discountAmount;
+    const currency = bill.currency || "₹";
 
     const subject = `Invoice from ${bill.sellerName} - Bill #${bill.billNumber}`;
     let body = `Hello ${bill.clientName},\n\nPlease find your invoice details below:\n\n`;
@@ -184,15 +187,15 @@ export default function BillPage({ params }: BillPageProps) {
         const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
         body += `Item: ${item.itemName}\n`;
         body += `Qty: ${item.quantity}\n`;
-        body += `Rate: ₹${(Number(item.rate) || 0).toFixed(2)}\n`;
-        body += `Amount: ₹${amount.toFixed(2)}\n\n`;
+        body += `Rate: ${currency}${(Number(item.rate) || 0).toFixed(2)}\n`;
+        body += `Amount: ${currency}${amount.toFixed(2)}\n\n`;
     });
     body += "----------------------------------------\n";
-    body += `Subtotal: ₹${subtotal.toFixed(2)}\n`;
+    body += `Subtotal: ${currency}${subtotal.toFixed(2)}\n`;
     if (bill.discount && bill.discount > 0) {
-        body += `Discount (${bill.discount}%): -₹${discountAmount.toFixed(2)}\n`;
+        body += `Discount (${bill.discount}%): -${currency}${discountAmount.toFixed(2)}\n`;
     }
-    body += `Total: ₹${totalAmount.toFixed(2)}\n\n`;
+    body += `Total: ${currency}${totalAmount.toFixed(2)}\n\n`;
     body += `Thank you for your business!\n\nBest regards,\n${bill.sellerName}`;
 
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;

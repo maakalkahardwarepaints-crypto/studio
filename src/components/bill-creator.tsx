@@ -57,6 +57,13 @@ const companyProfiles = {
     },
 };
 
+const currencies = [
+    { value: "₹", label: "INR (₹)" },
+    { value: "$", label: "USD ($)" },
+    { value: "€", label: "EUR (€)" },
+    { value: "£", label: "GBP (£)" },
+]
+
 export function BillCreator() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -93,6 +100,7 @@ export function BillCreator() {
       date: new Date(),
       items: [{ itemName: "", quantity: 1, rate: 0, cost: 0 }],
       discount: 0,
+      currency: "₹",
     },
     mode: "onBlur",
   });
@@ -131,6 +139,7 @@ export function BillCreator() {
 
   const watchItems = form.watch("items");
   const watchDiscount = form.watch("discount");
+  const watchCurrency = form.watch("currency");
 
   const subtotal = watchItems.reduce((acc, current) => {
     const quantity = parseFloat(String(current.quantity)) || 0;
@@ -248,6 +257,7 @@ export function BillCreator() {
       date: billData.date,
       totalAmount,
       discount: billData.discount || 0,
+      currency: billData.currency,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -343,13 +353,13 @@ export function BillCreator() {
     message += "*Items:*\n";
     billData.items.forEach(item => {
       const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
-      message += `- ${item.itemName} (Qty: ${item.quantity}, Rate: ₹${item.rate}) - ₹${amount.toFixed(2)}\n`;
+      message += `- ${item.itemName} (Qty: ${item.quantity}, Rate: ${watchCurrency}${item.rate}) - ${watchCurrency}${amount.toFixed(2)}\n`;
     });
-    message += `\nSubtotal: ₹${subtotal.toFixed(2)}`;
+    message += `\nSubtotal: ${watchCurrency}${subtotal.toFixed(2)}`;
     if (billData.discount && billData.discount > 0) {
-      message += `\nDiscount (${billData.discount}%): -₹${discountAmount.toFixed(2)}`;
+      message += `\nDiscount (${billData.discount}%): -${watchCurrency}${discountAmount.toFixed(2)}`;
     }
-    message += `\n*Total: ₹${totalAmount.toFixed(2)}*\n\n`;
+    message += `\n*Total: ${watchCurrency}${totalAmount.toFixed(2)}*\n\n`;
     message += `Thank you for your business!`;
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -372,15 +382,15 @@ export function BillCreator() {
         const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
         body += `Item: ${item.itemName}\n`;
         body += `Qty: ${item.quantity}\n`;
-        body += `Rate: ₹${(Number(item.rate) || 0).toFixed(2)}\n`;
-        body += `Amount: ₹${amount.toFixed(2)}\n\n`;
+        body += `Rate: ${watchCurrency}${(Number(item.rate) || 0).toFixed(2)}\n`;
+        body += `Amount: ${watchCurrency}${amount.toFixed(2)}\n\n`;
     });
     body += "----------------------------------------\n";
-    body += `Subtotal: ₹${subtotal.toFixed(2)}\n`;
+    body += `Subtotal: ${watchCurrency}${subtotal.toFixed(2)}\n`;
     if (billData.discount && billData.discount > 0) {
-        body += `Discount (${billData.discount}%): -₹${discountAmount.toFixed(2)}\n`;
+        body += `Discount (${billData.discount}%): -${watchCurrency}${discountAmount.toFixed(2)}\n`;
     }
-    body += `Total: ₹${totalAmount.toFixed(2)}\n\n`;
+    body += `Total: ${watchCurrency}${totalAmount.toFixed(2)}\n\n`;
     body += `Thank you for your business!\n\nBest regards,\n${billData.sellerName}`;
 
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -511,7 +521,7 @@ export function BillCreator() {
                         <TableCell><FormField name={`items.${index}.quantity`} control={form.control} render={({ field }) => (<Input type="number" placeholder="1" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell><FormField name={`items.${index}.cost`} control={form.control} render={({ field }) => (<Input type="number" placeholder="10.00" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
                         <TableCell><FormField name={`items.${index}.rate`} control={form.control} render={({ field }) => (<Input type="number" placeholder="15.00" {...field} value={String(field.value ?? '')} onChange={(e) => field.onChange(e.target.valueAsNumber)} />)} /><FormMessage className="text-xs" /></TableCell>
-                        <TableCell className="text-right font-medium">₹{amount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">{watchCurrency}{amount.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1} aria-label="Remove item">
                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -567,7 +577,7 @@ export function BillCreator() {
                         )} />
                     </CardContent>
                     <CardFooter className="flex justify-between items-center bg-muted/50 p-3">
-                        <span className="font-medium">Amount: ₹{amount.toFixed(2)}</span>
+                        <span className="font-medium">Amount: {watchCurrency}{amount.toFixed(2)}</span>
                          <Button variant="ghost" size="icon" onClick={() => remove(index)} disabled={fields.length <= 1} aria-label="Remove item" className="absolute top-2 right-2">
                             <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -584,6 +594,28 @@ export function BillCreator() {
           </CardContent>
           <CardFooter className="flex flex-col items-end space-y-2">
              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                <FormField
+                  control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Currency</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select currency" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {currencies.map(c => (
+                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField name="discount" control={form.control} render={({ field }) => (
                   <FormItem>
                     <FormLabel>Discount (%)</FormLabel>
@@ -599,15 +631,15 @@ export function BillCreator() {
             </div>
             <div className="flex justify-between w-full max-w-sm text-lg">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-semibold">₹{subtotal.toFixed(2)}</span>
+              <span className="font-semibold">{watchCurrency}{subtotal.toFixed(2)}</span>
             </div>
              <div className="flex justify-between w-full max-w-sm text-md">
                 <span className="text-muted-foreground">Discount</span>
-                <span className="font-semibold text-destructive">- ₹{discountAmount.toFixed(2)}</span>
+                <span className="font-semibold text-destructive">- {watchCurrency}{discountAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between w-full max-w-sm text-xl font-bold">
               <span>Total</span>
-              <span>₹{totalAmount.toFixed(2)}</span>
+              <span>{watchCurrency}{totalAmount.toFixed(2)}</span>
             </div>
           </CardFooter>
         </Card>

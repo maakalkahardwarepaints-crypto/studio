@@ -170,7 +170,7 @@ export default function BillHistoryPage() {
                           <TableCell>
                             {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
                           </TableCell>
-                          <TableCell className="text-right">₹{bill.totalAmount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">{bill.currency || '₹'}{bill.totalAmount.toFixed(2)}</TableCell>
                           <TableCell className="text-center">
                             <Button asChild variant="ghost" size="icon">
                               <Link href={`/bill/${bill.id}`} aria-label="View Bill">

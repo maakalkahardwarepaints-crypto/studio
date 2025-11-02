@@ -26,6 +26,7 @@ interface Bill {
     id: string;
     date: { seconds: number; nanoseconds: number };
     totalAmount: number;
+    currency?: string;
 }
 
 interface AggregatedItem {
@@ -35,6 +36,7 @@ interface AggregatedItem {
     totalRevenue: number;
     totalCost: number;
     totalProfit: number;
+    currency: string;
 }
 
 
@@ -49,6 +51,7 @@ export default function ProfitLossPage() {
   const [profitMargin, setProfitMargin] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currency, setCurrency] = useState("₹");
 
   const [dailyData, setDailyData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
@@ -91,6 +94,12 @@ export default function ProfitLossPage() {
     }
 
     if (bills && firestore) {
+        if (bills.length > 0) {
+            // NOTE: This assumes all bills use the same currency.
+            // A more robust solution would handle multiple currencies.
+            setCurrency(bills[0].currency || '₹');
+        }
+
         setIsLoading(true);
         const billItemsPromises = bills.map(bill => 
             getDocs(collection(firestore, `users/${user.uid}/bills/${bill.id}/items`))
@@ -108,6 +117,7 @@ export default function ProfitLossPage() {
 
             billsWithItems.forEach(bill => {
                 let billCost = 0;
+                const billCurrency = bill.currency || '₹';
                 bill.items.forEach(item => {
                     const revenue = (Number(item.rate) || 0) * (Number(item.quantity) || 0);
                     const cost = (Number(item.cost) || 0) * (Number(item.quantity) || 0);
@@ -128,6 +138,7 @@ export default function ProfitLossPage() {
                             totalRevenue: revenue,
                             totalCost: cost,
                             totalProfit: profit,
+                            currency: billCurrency,
                         });
                     }
                 });
@@ -255,7 +266,7 @@ export default function ProfitLossPage() {
                    tickFormatter={(value) => value}
                 />
                  <YAxis
-                      tickFormatter={(value) => `₹${value}`}
+                      tickFormatter={(value) => `${currency}${value}`}
                       width={80}
                   />
                 <Tooltip
@@ -273,7 +284,7 @@ export default function ProfitLossPage() {
                                 {label}
                               </span>
                               <span className={`font-bold ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {`₹${net.toFixed(2)}`}
+                                {`${currency}${net.toFixed(2)}`}
                               </span>
                             </div>
                           </div>
@@ -344,7 +355,7 @@ export default function ProfitLossPage() {
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">₹{totalRevenue.toFixed(2)}</div>
+                            <div className="text-2xl font-bold">{currency}{totalRevenue.toFixed(2)}</div>
                             <p className="text-xs text-muted-foreground">Total amount from all bills (after discounts)</p>
                         </CardContent>
                     </Card>
@@ -354,7 +365,7 @@ export default function ProfitLossPage() {
                             <DollarSign className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">₹{totalCost.toFixed(2)}</div>
+                            <div className="text-2xl font-bold">{currency}{totalCost.toFixed(2)}</div>
                              <p className="text-xs text-muted-foreground">Total cost of all items sold</p>
                         </CardContent>
                     </Card>
@@ -364,7 +375,7 @@ export default function ProfitLossPage() {
                             {totalProfit >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
                         </CardHeader>
                         <CardContent>
-                            <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>₹{totalProfit.toFixed(2)}</div>
+                            <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{currency}{totalProfit.toFixed(2)}</div>
                              <p className="text-xs text-muted-foreground">Revenue minus Cost</p>
                         </CardContent>
                     </Card>
@@ -411,9 +422,9 @@ export default function ProfitLossPage() {
                             <TableRow key={item.id}>
                             <TableCell className="font-medium">{item.itemName}</TableCell>
                             <TableCell className="text-right">{item.quantity}</TableCell>
-                            <TableCell className="text-right">₹{item.totalRevenue.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">₹{item.totalCost.toFixed(2)}</TableCell>
-                            <TableCell className={`text-right font-semibold ${item.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>₹{item.totalProfit.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">{item.currency}{item.totalRevenue.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">{item.currency}{item.totalCost.toFixed(2)}</TableCell>
+                            <TableCell className={`text-right font-semibold ${item.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{item.currency}{item.totalProfit.toFixed(2)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>

@@ -18,6 +18,7 @@ export const billFormSchema = z.object({
   date: z.date(),
   items: z.array(billItemSchema).min(1, "Please add at least one item."),
   discount: z.coerce.number().min(0, "Discount cannot be negative.").max(100, "Discount cannot exceed 100%.").default(0).optional(),
+  currency: z.string().default("₹"),
 });
 
 export type BillFormValues = z.infer<typeof billFormSchema>;

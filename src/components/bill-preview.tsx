@@ -11,6 +11,7 @@ interface BillPreviewProps {
 const DISCLAIMER_THRESHOLD = 80000;
 
 export function BillPreview({ bill }: BillPreviewProps) {
+  const currency = bill.currency || "₹";
   const subtotal = bill.items.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
   const discountAmount = subtotal * ((Number(bill.discount) || 0) / 100);
   const totalAmount = subtotal - discountAmount;
@@ -61,8 +62,8 @@ export function BillPreview({ bill }: BillPreviewProps) {
                   <TableCell>{index + 1}</TableCell>
                   <TableCell className="font-medium">{item.itemName}</TableCell>
                   <TableCell className="text-right">{quantity.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">₹{(rate).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">₹{amount.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">{currency}{(rate).toFixed(2)}</TableCell>
+                  <TableCell className="text-right">{currency}{amount.toFixed(2)}</TableCell>
                 </TableRow>
               );
             })}
@@ -76,18 +77,18 @@ export function BillPreview({ bill }: BillPreviewProps) {
         <div className="w-full max-w-xs space-y-2">
           <div className="flex justify-between py-1">
             <span className="font-medium text-gray-600">Subtotal</span>
-            <span className="font-medium">₹{subtotal.toFixed(2)}</span>
+            <span className="font-medium">{currency}{subtotal.toFixed(2)}</span>
           </div>
            {bill.discount && bill.discount > 0 && (
             <div className="flex justify-between py-1">
               <span className="font-medium text-gray-600">Discount ({bill.discount}%)</span>
-              <span className="font-medium text-red-600">- ₹{discountAmount.toFixed(2)}</span>
+              <span className="font-medium text-red-600">- {currency}{discountAmount.toFixed(2)}</span>
             </div>
           )}
           <Separator className="my-2 bg-gray-300"/>
           <div className="flex justify-between py-1">
             <span className="font-bold text-lg sm:text-xl">Total</span>
-            <span className="font-bold text-lg sm:text-xl">₹{totalAmount.toFixed(2)}</span>
+            <span className="font-bold text-lg sm:text-xl">{currency}{totalAmount.toFixed(2)}</span>
           </div>
         </div>
       </div>
