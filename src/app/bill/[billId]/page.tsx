@@ -38,7 +38,7 @@ export default function BillPage({ params }: BillPageProps) {
   const billDocRef = useMemoFirebase(() => {
     if (!user || !params.billId) return null;
     return doc(firestore, `users/${user.uid}/bills/${params.billId}`);
-  }, [firestore, user, params.billId]);
+  }, [firestore, user, params]);
   
   const itemsCollectionRef = useMemoFirebase(() => {
     if (!billDocRef) return null;
