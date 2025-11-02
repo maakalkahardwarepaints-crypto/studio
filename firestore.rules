@@ -5,17 +5,19 @@
  * This ruleset enforces a strict user-ownership model for bill data, ensuring
  * that only the authenticated user can access their own bills and associated items.
  * Seller and client data are publicly readable but not writable through these rules.
+ * Public read access is granted for specific bills if the full path is known.
  *
  * Data Structure:
- * - /users/{userId}/bills/{billId}: Stores bill information, accessible only by the owning user.
- * - /users/{userId}/bills/{billId}/items/{itemId}: Stores item details for a specific bill, accessible only by the owning user.
+ * - /users/{userId}/bills/{billId}: Stores bill information.
+ * - /users/{userId}/bills/{billId}/items/{itemId}: Stores item details for a specific bill.
  * - /sellers/{sellerId}: Stores seller information, publicly readable.
  * - /clients/{clientId}: Stores client information, publicly readable.
  *
  * Key Security Decisions:
  * - User listing is disallowed.
  * - Seller and client data is public and immutable (creation, updates, and deletion are not allowed).
- * - The rules rely on path-based ownership to ensure that users can only access their own data.
+ * - Bill creation, update, and deletion are restricted to the owning user.
+ * - Public, unauthenticated read access is allowed for a single bill and its items if the full path is known.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -65,18 +67,13 @@ service cloud.firestore {
     /**
      * @description Rules for documents in the /users/{userId}/bills/{billId} collection.
      * @path /users/{userId}/bills/{billId}
-     * @allow (create) - User 'user123' creates a new bill with billId and correct ownership: request.auth.uid == 'user123'.
-     * @allow (get) - User 'user123' reads bill 'bill456' at /users/user123/bills/bill456.
-     * @allow (update) - User 'user123' updates bill 'bill456' at /users/user123/bills/bill456.
-     * @allow (delete) - User 'user123' deletes bill 'bill456' at /users/user123/bills/bill456.
-     * @deny (create) - User 'userABC' attempts to create a bill for user 'user123'.
-     * @deny (get) - User 'userABC' attempts to read bill 'bill456' at /users/user123/bills/bill456.
-     * @deny (update) - User 'userABC' attempts to update bill 'bill456' at /users/user123/bills/bill456.
-     * @deny (delete) - User 'userABC' attempts to delete bill 'bill456' at /users/user123/bills/bill456.
-     * @principle Enforces document ownership for reads and writes. Validates the billId on create.
+     * @allow (get) - Public read access for a single bill if the path is known. Authenticated user can read their own bill.
+     * @allow (list) - Only the owner can list their own bills.
+     * @allow (create, update, delete) - Only the owner can write to their own bills.
+     * @principle Enforces document ownership for writes and lists, but allows public reads for individual documents.
      */
     match /users/{userId}/bills/{billId} {
-      allow get: if isOwner(userId);
+      allow get: if true;
       allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.id == billId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
@@ -86,18 +83,13 @@ service cloud.firestore {
     /**
      * @description Rules for documents in the /users/{userId}/bills/{billId}/items/{itemId} collection.
      * @path /users/{userId}/bills/{billId}/items/{itemId}
-     * @allow (create) - User 'user123' creates a new item 'item789' under bill 'bill456' at /users/user123/bills/bill456.
-     * @allow (get) - User 'user123' reads item 'item789' under bill 'bill456' at /users/user123/bills/bill456.
-     * @allow (update) - User 'user123' updates item 'item789' under bill 'bill456' at /users/user123/bills/bill456.
-     * @allow (delete) - User 'user123' deletes item 'item789' under bill 'bill456' at /users/user123/bills/bill456.
-     * @deny (create) - User 'userABC' attempts to create an item under user 'user123''s bill.
-     * @deny (get) - User 'userABC' attempts to read item 'item789' under user 'user123''s bill.
-     * @deny (update) - User 'userABC' attempts to update item 'item789' under user 'user123''s bill.
-     * @deny (delete) - User 'userABC' attempts to delete item 'item789' under user 'user123''s bill.
-     * @principle Enforces document ownership for reads and writes.
+     * @allow (get) - Public read access for a single item if the path is known. Authenticated user can read their own item.
+     * @allow (list) - Public list access for items within a single bill.
+     * @allow (create, update, delete) - Only the owner can write to items in their bill.
+     * @principle Enforces document ownership for writes, but allows public reads.
      */
     match /users/{userId}/bills/{billId}/items/{itemId} {
-      allow get: if isOwner(userId);
+      allow get, list: if true;
       allow create: if isOwner(userId) && request.resource.data.id == itemId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(userId);
@@ -119,7 +111,7 @@ service cloud.firestore {
      * @description Rules for documents in the /clients/{clientId} collection.
      * @path /clients/{clientId}
      * @allow (get, list) - Any user can read client data.
-     * @deny (create, update, delete) - No user can create, update, or delete client data through the rules.
+     deny (create, update, delete) - No user can create, update, or delete client data through the rules.
      * @principle Allows public read access to client data.
      */
     match /clients/{clientId} {

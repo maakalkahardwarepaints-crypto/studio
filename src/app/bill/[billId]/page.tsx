@@ -32,7 +32,7 @@ export default function BillPage({ params }: BillPageProps) {
   const firestore = useFirestore();
   const [isQrCodeOpen, setIsQrCodeOpen] = useState(false);
   
-  const billUrl = typeof window !== 'undefined' ? `${window.location.origin}/bill/${params.billId}` : '';
+  const billUrl = typeof window !== 'undefined' && user ? `${window.location.origin}/public/bill/${user.uid}/${params.billId}` : '';
 
 
   const billDocRef = useMemoFirebase(() => {
@@ -106,7 +106,7 @@ export default function BillPage({ params }: BillPageProps) {
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setIsQrCodeOpen(true)}>
                 <QrCode className="mr-2 h-4 w-4" />
-                Show QR Code
+                Share via QR
               </Button>
               <Button asChild variant="outline">
                 <Link href="/bill/history">View History</Link>
@@ -125,11 +125,11 @@ export default function BillPage({ params }: BillPageProps) {
               <AlertDialogHeader>
                   <AlertDialogTitle>Share Bill with QR Code</AlertDialogTitle>
                   <AlertDialogDescription>
-                      Scan this QR code with a mobile device to view the bill instantly.
+                      Anyone can scan this QR code with a mobile device to view a read-only version of the bill.
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <div className="flex items-center justify-center p-4">
-                  <QRCode value={billUrl} size={256} level="H" />
+                  {billUrl ? <QRCode value={billUrl} size={256} level="H" /> : <Loader2 className="animate-spin" />}
               </div>
               <AlertDialogFooter>
                   <AlertDialogCancel>Close</AlertDialogCancel>
