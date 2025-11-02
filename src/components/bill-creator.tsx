@@ -627,7 +627,7 @@ export function BillCreator() {
               Generate AI Summary
             </Button>
              <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger>
                 <Button variant="outline">
                   <Share2 className="mr-2" /> Share Bill
                 </Button>
