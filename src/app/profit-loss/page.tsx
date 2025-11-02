@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs, collectionGroup } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
@@ -18,15 +18,18 @@ interface Item {
   cost: number;
 }
 
-interface Bill {
-    id: string;
+interface AggregatedItem extends Item {
+    totalRevenue: number;
+    totalCost: number;
+    totalProfit: number;
 }
+
 
 export default function ProfitLossPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
-  const [items, setItems] = useState<Item[]>([]);
+  const [aggregatedItems, setAggregatedItems] = useState<AggregatedItem[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
@@ -34,12 +37,12 @@ export default function ProfitLossPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const billsCollectionRef = useMemoFirebase(() => {
+  const allItemsQuery = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return collection(firestore, `users/${user.uid}/bills`);
+    return query(collectionGroup(firestore, 'items'));
   }, [user, firestore]);
 
-  const { data: bills, isLoading: isLoadingBills, error: billsError } = useCollection<Bill>(billsCollectionRef);
+  const { data: items, isLoading: isLoadingItems, error: itemsError } = useCollection<Item>(allItemsQuery);
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -47,54 +50,60 @@ export default function ProfitLossPage() {
         setIsLoading(false);
         return;
     }
-    if (isLoadingBills) return;
+    
+    if (isLoadingItems) {
+      setIsLoading(true);
+      return;
+    }
 
-    if (billsError) {
-        setError(billsError.message);
+    if (itemsError) {
+        setError(itemsError.message);
         setIsLoading(false);
         return;
     }
 
-    if (bills && firestore) {
-      setIsLoading(true);
-      const fetchAllItems = async () => {
-        try {
-          const allItems: Item[] = [];
-          for (const bill of bills) {
-            const itemsQuery = query(collection(firestore, `users/${user.uid}/bills/${bill.id}/items`));
-            const itemsSnapshot = await getDocs(itemsQuery);
-            itemsSnapshot.forEach(doc => {
-              allItems.push({ id: doc.id, ...doc.data() } as Item);
-            });
-          }
-          setItems(allItems);
+    if (items) {
+        const itemMap = new Map<string, AggregatedItem>();
 
-          let revenue = 0;
-          let cost = 0;
-          allItems.forEach(item => {
-            revenue += (Number(item.rate) || 0) * (Number(item.quantity) || 0);
-            cost += (Number(item.cost) || 0) * (Number(item.quantity) || 0);
-          });
-          
-          const profit = revenue - cost;
-          const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+        items.forEach(item => {
+            const revenue = (Number(item.rate) || 0) * (Number(item.quantity) || 0);
+            const cost = (Number(item.cost) || 0) * (Number(item.quantity) || 0);
+            const profit = revenue - cost;
+            
+            const existing = itemMap.get(item.itemName);
+            if (existing) {
+                existing.quantity += Number(item.quantity) || 0;
+                existing.totalRevenue += revenue;
+                existing.totalCost += cost;
+                existing.totalProfit += profit;
+            } else {
+                itemMap.set(item.itemName, {
+                    ...item,
+                    quantity: Number(item.quantity) || 0,
+                    totalRevenue: revenue,
+                    totalCost: cost,
+                    totalProfit: profit,
+                });
+            }
+        });
+        
+        const aggregated = Array.from(itemMap.values());
+        setAggregatedItems(aggregated);
+        
+        const totalRev = aggregated.reduce((sum, item) => sum + item.totalRevenue, 0);
+        const totalC = aggregated.reduce((sum, item) => sum + item.totalCost, 0);
+        const totalP = totalRev - totalC;
+        const margin = totalRev > 0 ? (totalP / totalRev) * 100 : 0;
 
-          setTotalRevenue(revenue);
-          setTotalCost(cost);
-          setTotalProfit(profit);
-          setProfitMargin(margin);
-
-        } catch (e: any) {
-          setError(e.message || "Failed to fetch item details.");
-        } finally {
-          setIsLoading(false);
-        }
-      };
-      fetchAllItems();
-    } else if (!isLoadingBills) {
-        setIsLoading(false);
+        setTotalRevenue(totalRev);
+        setTotalCost(totalC);
+        setTotalProfit(totalP);
+        setProfitMargin(margin);
     }
-  }, [user, isUserLoading, bills, isLoadingBills, billsError, firestore]);
+    
+    setIsLoading(false);
+
+  }, [user, isUserLoading, items, isLoadingItems, itemsError]);
 
 
   if (isLoading || isUserLoading) {
@@ -202,36 +211,31 @@ export default function ProfitLossPage() {
         <Card>
             <CardHeader>
                 <CardTitle>All Items Sold</CardTitle>
-                <CardDescription>A detailed list of all items from your bills.</CardDescription>
+                <CardDescription>A detailed list of all items from your bills, aggregated by item name.</CardDescription>
             </CardHeader>
             <CardContent>
-             {items && items.length > 0 ? (
+             {aggregatedItems && aggregatedItems.length > 0 ? (
                 <div className="overflow-x-auto">
                     <Table>
                     <TableHeader>
                         <TableRow>
                         <TableHead>Item Name</TableHead>
-                        <TableHead className="text-right">Total Quantity</TableHead>
+                        <TableHead className="text-right">Total Quantity Sold</TableHead>
                         <TableHead className="text-right">Total Revenue</TableHead>
                         <TableHead className="text-right">Total Cost</TableHead>
                         <TableHead className="text-right">Total Profit</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {items.map((item) => {
-                            const revenue = (Number(item.rate) || 0) * (Number(item.quantity) || 0);
-                            const cost = (Number(item.cost) || 0) * (Number(item.quantity) || 0);
-                            const profit = revenue - cost;
-                            return (
-                                <TableRow key={item.id}>
-                                <TableCell className="font-medium">{item.itemName}</TableCell>
-                                <TableCell className="text-right">{item.quantity}</TableCell>
-                                <TableCell className="text-right">₹{revenue.toFixed(2)}</TableCell>
-                                <TableCell className="text-right">₹{cost.toFixed(2)}</TableCell>
-                                <TableCell className={`text-right font-semibold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>₹{profit.toFixed(2)}</TableCell>
-                                </TableRow>
-                            );
-                        })}
+                        {aggregatedItems.map((item) => (
+                            <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.itemName}</TableCell>
+                            <TableCell className="text-right">{item.quantity}</TableCell>
+                            <TableCell className="text-right">₹{item.totalRevenue.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">₹{item.totalCost.toFixed(2)}</TableCell>
+                            <TableCell className={`text-right font-semibold ${item.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>₹{item.totalProfit.toFixed(2)}</TableCell>
+                            </TableRow>
+                        ))}
                     </TableBody>
                     </Table>
                 </div>

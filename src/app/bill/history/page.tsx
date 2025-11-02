@@ -47,37 +47,53 @@ export default function BillHistoryPage() {
     });
   }, [bills]);
 
-  const handleDeleteBill = async () => {
+  const handleDeleteBill = () => {
     if (!user || !firestore || !billToDelete) {
         toast({ title: 'Error', description: 'Could not delete bill. User or bill ID is missing.', variant: 'destructive' });
         return;
     }
     setIsDeleting(true);
 
-    try {
-        const billRef = doc(firestore, `users/${user.uid}/bills/${billToDelete}`);
-        const itemsRef = collection(billRef, 'items');
+    const billRef = doc(firestore, `users/${user.uid}/bills/${billToDelete}`);
+    const itemsRef = collection(billRef, 'items');
 
-        // Delete all items in the subcollection first
-        const itemsSnapshot = await getDocs(itemsRef);
-        const deletePromises = itemsSnapshot.docs.map((itemDoc) => deleteDoc(itemDoc.ref));
-        await Promise.all(deletePromises);
-
-        // Then delete the bill document itself
-        await deleteDoc(billRef);
-        
-        toast({ title: 'Success', description: 'Bill deleted successfully.' });
-
-    } catch (e: any) {
-        const permissionError = new FirestorePermissionError({
-            path: `users/${user.uid}/bills/${billToDelete}`,
-            operation: 'delete',
+    getDocs(itemsRef)
+      .then(itemsSnapshot => {
+        const deletePromises = itemsSnapshot.docs.map(itemDoc => 
+          deleteDoc(itemDoc.ref).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+                path: itemDoc.ref.path,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw permissionError; 
+          })
+        );
+        return Promise.all(deletePromises);
+      })
+      .then(() => {
+        return deleteDoc(billRef).catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+                path: billRef.path,
+                operation: 'delete',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            throw permissionError;
         });
-        errorEmitter.emit('permission-error', permissionError);
-    } finally {
+      })
+      .then(() => {
+        toast({ title: 'Success', description: 'Bill deleted successfully.' });
+      })
+      .catch(error => {
+        // Errors are already emitted, so we just need to handle UI state.
+        if (!(error instanceof FirestorePermissionError)) {
+           toast({ title: 'Error', description: 'An unexpected error occurred while deleting the bill.', variant: 'destructive' });
+        }
+      })
+      .finally(() => {
         setIsDeleting(false);
         setBillToDelete(null);
-    }
+      });
   };
 
 
