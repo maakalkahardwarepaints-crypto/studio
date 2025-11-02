@@ -60,11 +60,12 @@ export default function ProfitLossPage() {
   const allItemsQuery = useMemoFirebase(() => {
     if (!user) return null;
     return query(
-      collectionGroup(firestore, 'items'),
-      where('__name__', '>=', `users/${user.uid}/`),
-      where('__name__', '<', `users/${user.uid}/\uf8ff`)
+        collectionGroup(firestore, 'items'),
+        where('__name__', '>=', `users/${user.uid}/`),
+        where('__name__', '<', `users/${user.uid}/\uf8ff`)
     );
   }, [user, firestore]);
+
   const { data: items, isLoading: isLoadingItems, error: itemsError } = useCollection<Item>(allItemsQuery);
   
   const chartConfig = {
@@ -97,7 +98,6 @@ export default function ProfitLossPage() {
     }
 
     if (items && bills) {
-        // Items aggregation logic
         const itemMap = new Map<string, AggregatedItem>();
         items.forEach(item => {
             const revenue = (Number(item.rate) || 0) * (Number(item.quantity) || 0);
@@ -133,7 +133,6 @@ export default function ProfitLossPage() {
         setTotalProfit(totalP);
         setProfitMargin(margin);
 
-        // Chart data aggregation
         const dailyProfit: { [key: string]: number } = {};
         const monthlyProfit: { [key: string]: number } = {};
         const yearlyProfit: { [key: string]: number } = {};
@@ -146,7 +145,7 @@ export default function ProfitLossPage() {
         Promise.all(billItemsPromises).then(billsWithItems => {
             billsWithItems.forEach(bill => {
                 const billDate = new Date(bill.date.seconds * 1000);
-                const billRevenue = bill.totalAmount; // Assuming totalAmount is revenue
+                const billRevenue = bill.totalAmount;
                 const billCost = bill.items.reduce((acc, item) => acc + (Number(item.cost) || 0) * (Number(item.quantity) || 0), 0);
                 const billProfit = billRevenue - billCost;
 
@@ -344,7 +343,7 @@ export default function ProfitLossPage() {
             <CardHeader>
                 <CardTitle>All Items Sold</CardTitle>
                 <CardDescription>A detailed list of all items from your bills, aggregated by item name.</CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent>
              {aggregatedItems && aggregatedItems.length > 0 ? (
                 <div className="overflow-x-auto">
@@ -383,3 +382,5 @@ export default function ProfitLossPage() {
     </div>
   );
 }
+
+    
