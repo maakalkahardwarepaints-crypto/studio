@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collectionGroup, query, getDocs } from 'firebase/firestore';
+import { collection, query, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
@@ -18,10 +18,15 @@ interface Item {
   cost: number;
 }
 
+interface Bill {
+    id: string;
+}
+
 export default function ProfitLossPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
+  const [items, setItems] = useState<Item[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
   const [totalProfit, setTotalProfit] = useState(0);
@@ -29,59 +34,70 @@ export default function ProfitLossPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const itemsQuery = useMemoFirebase(() => {
+  const billsCollectionRef = useMemoFirebase(() => {
     if (!user || !firestore) return null;
-    return query(collectionGroup(firestore, 'items'));
+    return collection(firestore, `users/${user.uid}/bills`);
   }, [user, firestore]);
 
-  const { data: items, isLoading: isLoadingItems, error: itemsError } = useCollection<Item>(itemsQuery);
+  const { data: bills, isLoading: isLoadingBills, error: billsError } = useCollection<Bill>(billsCollectionRef);
 
   useEffect(() => {
-    if (isUserLoading) {
-      return;
-    }
-    
+    if (isUserLoading) return;
     if (!user) {
-      setIsLoading(false);
-      return;
+        setIsLoading(false);
+        return;
     }
-    
-    if (isLoadingItems) {
+    if (isLoadingBills) return;
+
+    if (billsError) {
+        setError(billsError.message);
+        setIsLoading(false);
+        return;
+    }
+
+    if (bills && firestore) {
       setIsLoading(true);
-      return;
-    }
+      const fetchAllItems = async () => {
+        try {
+          const allItems: Item[] = [];
+          for (const bill of bills) {
+            const itemsQuery = query(collection(firestore, `users/${user.uid}/bills/${bill.id}/items`));
+            const itemsSnapshot = await getDocs(itemsQuery);
+            itemsSnapshot.forEach(doc => {
+              allItems.push({ id: doc.id, ...doc.data() } as Item);
+            });
+          }
+          setItems(allItems);
 
-    if (itemsError) {
-      setError(itemsError.message);
-      setIsLoading(false);
-      return;
-    }
+          let revenue = 0;
+          let cost = 0;
+          allItems.forEach(item => {
+            revenue += (Number(item.rate) || 0) * (Number(item.quantity) || 0);
+            cost += (Number(item.cost) || 0) * (Number(item.quantity) || 0);
+          });
+          
+          const profit = revenue - cost;
+          const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-    if (items) {
-      let revenue = 0;
-      let cost = 0;
+          setTotalRevenue(revenue);
+          setTotalCost(cost);
+          setTotalProfit(profit);
+          setProfitMargin(margin);
 
-      items.forEach(item => {
-        revenue += (Number(item.rate) || 0) * (Number(item.quantity) || 0);
-        cost += (Number(item.cost) || 0) * (Number(item.quantity) || 0);
-      });
-
-      const profit = revenue - cost;
-      const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-
-      setTotalRevenue(revenue);
-      setTotalCost(cost);
-      setTotalProfit(profit);
-      setProfitMargin(margin);
-      setIsLoading(false);
-    } else {
+        } catch (e: any) {
+          setError(e.message || "Failed to fetch item details.");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchAllItems();
+    } else if (!isLoadingBills) {
         setIsLoading(false);
     }
+  }, [user, isUserLoading, bills, isLoadingBills, billsError, firestore]);
 
-  }, [user, isUserLoading, items, isLoadingItems, itemsError]);
 
-
-  if (isLoading) {
+  if (isLoading || isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
