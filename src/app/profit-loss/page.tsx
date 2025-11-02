@@ -10,7 +10,7 @@ import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'luci
 import { JMKTradingLogo } from '@/components/icons';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
+import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { format, startOfDay, startOfMonth, startOfYear } from 'date-fns';
 
@@ -166,6 +166,7 @@ export default function ProfitLossPage() {
                   formattedDate: format(new Date(date), dateFormat),
                   profit: profit >= 0 ? profit : 0,
                   loss: profit < 0 ? Math.abs(profit) : 0,
+                  value: profit,
                 }))
                 .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -226,34 +227,72 @@ export default function ProfitLossPage() {
         <CardContent>
           {data.length > 0 ? (
             <ChartContainer config={config} className="h-[250px] w-full">
-              <BarChart accessibilityLayer data={data}>
-                  <XAxis
-                      dataKey="formattedDate"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={8}
-                      tickFormatter={(value) => value}
-                  />
-                  <YAxis
+               <AreaChart
+                accessibilityLayer
+                data={data}
+                margin={{
+                  left: 12,
+                  right: 12,
+                }}
+              >
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="formattedDate"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                   tickFormatter={(value) => value}
+                />
+                 <YAxis
                       tickFormatter={(value) => `₹${value}`}
                   />
-                  <ChartTooltip
-                      cursor={false}
-                      content={<ChartTooltipContent 
-                          formatter={(value, name) => (
-                             <div className="flex items-center gap-2">
-                               <div className={`h-2.5 w-2.5 rounded-sm bg-${name === 'profit' ? 'green' : 'red'}-500`} />
-                               <div>
-                                 <p className="font-medium">{name === 'profit' ? 'Profit' : 'Loss'}</p>
-                                 <p className="text-sm text-muted-foreground">₹{typeof value === 'number' ? value.toLocaleString() : value}</p>
-                                </div>
-                             </div>
-                          )}
-                      />}
-                  />
-                  <Bar dataKey="profit" fill="var(--color-profit)" radius={4} />
-                  <Bar dataKey="loss" fill="var(--color-loss)" radius={4} />
-              </BarChart>
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="dot" />}
+                />
+                <defs>
+                  <linearGradient id="fillProfit" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor="var(--color-profit)"
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--color-profit)"
+                      stopOpacity={0.1}
+                    />
+                  </linearGradient>
+                  <linearGradient id="fillLoss" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="5%"
+                      stopColor="var(--color-loss)"
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="var(--color-loss)"
+                      stopOpacity={0.1}
+                    />
+                  </linearGradient>
+                </defs>
+                 <Area
+                  dataKey="profit"
+                  type="natural"
+                  fill="url(#fillProfit)"
+                  fillOpacity={0.4}
+                  stroke="var(--color-profit)"
+                  stackId="a"
+                />
+                 <Area
+                  dataKey="loss"
+                  type="natural"
+                  fill="url(#fillLoss)"
+                  fillOpacity={0.4}
+                  stroke="var(--color-loss)"
+                  stackId="a"
+                />
+              </AreaChart>
             </ChartContainer>
           ) : (
             <div className="text-center py-10">
