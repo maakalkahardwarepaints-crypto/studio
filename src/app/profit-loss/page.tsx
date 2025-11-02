@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useCollection } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collectionGroup, query, getDocs } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,7 +29,11 @@ export default function ProfitLossPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const itemsQuery = user ? query(collectionGroup(firestore, 'items')) : null;
+  const itemsQuery = useMemoFirebase(() => {
+    if (!user || !firestore) return null;
+    return query(collectionGroup(firestore, 'items'));
+  }, [user, firestore]);
+
   const { data: items, isLoading: isLoadingItems, error: itemsError } = useCollection<Item>(itemsQuery);
 
   useEffect(() => {
