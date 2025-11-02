@@ -51,9 +51,9 @@ const companyProfiles = {
         ownerNumber: "7479633348",
     },
     "Maa Kalka Hadware & Paints": {
-        address: "",
-        shopNumber: "",
-        ownerNumber: "",
+        address: "Shop No 3-4, Pliot No -1,Kh. No.796,Asola Bandh Road, Fatehpur Beri,New Delhi -110074",
+        shopNumber: "011-41079296",
+        ownerNumber: "7479633348",
     },
 };
 
@@ -701,3 +701,4 @@ export function BillCreator() {
     
 
     
+
