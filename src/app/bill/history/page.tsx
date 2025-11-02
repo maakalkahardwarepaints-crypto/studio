@@ -120,7 +120,7 @@ export default function BillHistoryPage() {
           <div className="container mx-auto flex h-16 items-center justify-between px-4">
             <Link href="/" className="flex items-center gap-2">
               <JMKTradingLogo className="h-8 w-8" />
-              <span className="font-bold text-foreground">Bill Book</span>
+              <span className="font-bold text-foreground">JMK Trading</span>
             </Link>
             <Button asChild>
               <Link href="/create-bill">Create New Bill</Link>

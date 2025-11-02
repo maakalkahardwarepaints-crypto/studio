@@ -69,7 +69,7 @@ export function BillCreator() {
   const form = useForm<BillFormValues>({
     resolver: zodResolver(billFormSchema),
     defaultValues: {
-      sellerName: "Bill Book",
+      sellerName: "JMK Trading",
       sellerAddress: "123 Market St, Anytown, USA",
       sellerShopNumber: "S-15",
       sellerOwnerNumber: "+1 (555) 123-4567",
@@ -259,9 +259,7 @@ export function BillCreator() {
         router.push(`/bill/${newBillRef.id}`);
       })
       .catch((error) => {
-        // This will catch the bill creation error or any propagated item creation error
         if (!(error instanceof FirestorePermissionError)) {
-            // This is the catch for the bill setDoc itself
             const permissionError = new FirestorePermissionError({
                 path: newBillRef.path,
                 operation: 'create',
@@ -269,12 +267,8 @@ export function BillCreator() {
             });
             errorEmitter.emit('permission-error', permissionError);
         }
-        setIsSaving(false); // Ensure button is re-enabled on failure
+        setIsSaving(false);
       })
-      .finally(() => {
-        // This might run before navigation, so we only set saving to false on error.
-        // A more robust solution might handle this differently, but this is fine for now.
-      });
   };
 
   const handleExportCsv = async () => {
@@ -346,16 +340,20 @@ export function BillCreator() {
     body += `Date: ${format(billData.date, "PPP")}\n\n`;
     body += "----------------------------------------\n";
     billData.items.forEach(item => {
-      const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
-       body += `Item: ${item.itemName}\nQty: ${item.quantity}\nRate: ₹${item.rate.toFixed(2)}\nAmount: ₹${amount.toFixed(2)}\n\n`;
+        const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
+        body += `Item: ${item.itemName}\n`;
+        body += `Qty: ${item.quantity}\n`;
+        body += `Rate: ₹${(Number(item.rate) || 0).toFixed(2)}\n`;
+        body += `Amount: ₹${amount.toFixed(2)}\n\n`;
     });
     body += "----------------------------------------\n";
     body += `Subtotal: ₹${subtotal.toFixed(2)}\n`;
     if (billData.discount && billData.discount > 0) {
-      body += `Discount (${billData.discount}%): -₹${discountAmount.toFixed(2)}\n`;
+        body += `Discount (${billData.discount}%): -₹${discountAmount.toFixed(2)}\n`;
     }
     body += `Total: ₹${totalAmount.toFixed(2)}\n\n`;
     body += `Thank you for your business!\n\nBest regards,\n${billData.sellerName}`;
+
 
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoUrl;

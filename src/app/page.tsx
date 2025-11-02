@@ -13,7 +13,7 @@ export default function Home() {
          
           <div className="space-y-2">
             <h1 className="text-4xl font-bold tracking-tighter text-foreground sm:text-5xl md:text-6xl font-headline">
-              Bill Book
+              JMK Trading
             </h1>
             <p className="max-w-[600px] text-muted-foreground md:text-xl">
               Create professional, GST-free bills quickly and efficiently. Perfect for small businesses, shopkeepers, and freelancers.

@@ -17,7 +17,7 @@ interface BillPageProps {
 }
 
 export default function BillPage({ params }: BillPageProps) {
-  const { billId } = params;
+  const { billId } = use(params);
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
 
@@ -86,7 +86,7 @@ export default function BillPage({ params }: BillPageProps) {
         <div className="flex justify-between items-center">
             <Link href="/" className="flex items-center gap-2">
                 <JMKTradingLogo className="h-8 w-8" />
-                <span className="font-bold text-foreground">Bill Book</span>
+                <span className="font-bold text-foreground">JMK Trading</span>
             </Link>
            <div className="flex gap-2">
             <Button asChild variant="outline">
