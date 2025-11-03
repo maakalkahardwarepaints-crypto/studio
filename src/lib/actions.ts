@@ -15,12 +15,12 @@ import { firebaseConfig } from '@/firebase/config';
 
 // Helper function for server-side Firebase initialization
 function initializeServerFirebase() {
-    if (getApps().some(app => app.name === 'server-app')) {
-        return getApp('server-app');
+    if (!getApps().length) {
+        // When on the server, we can't rely on the automatic SDK configuration
+        // that App Hosting provides on the client. We must use the config object.
+        return initializeApp(firebaseConfig);
     }
-    // When on the server, we can't rely on the automatic SDK configuration
-    // that App Hosting provides on the client. We must use the config object.
-    return initializeApp(firebaseConfig, 'server-app');
+    return getApp();
 }
 
 
@@ -35,6 +35,9 @@ export async function getBillSummaryAction(
   const billData = validation.data;
 
   try {
+    // Ensure Firebase is initialized on the server before use.
+    initializeServerFirebase();
+
     const subtotal = billData.items.reduce(
       (acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.rate) || 0), 0);
     const discountAmount = subtotal * ((Number(billData.discount) || 0) / 100);
