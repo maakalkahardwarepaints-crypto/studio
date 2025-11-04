@@ -437,15 +437,15 @@ export function BillCreator() {
                 </Select>
               </FormItem>
 
-              {selectedCompany === "other" && (
-                <FormField name="sellerName" control={form.control} render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company Name</FormLabel>
-                    <FormControl><Input {...field} placeholder="Your Company Name" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              )}
+              
+              <FormField name="sellerName" control={form.control} render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name</FormLabel>
+                  <FormControl><Input {...field} placeholder="Your Company Name" readOnly={selectedCompany !== 'other'} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              
               
               <FormField name="sellerAddress" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Company Address</FormLabel><FormControl><Textarea {...field} readOnly={selectedCompany !== 'other'} /></FormControl><FormMessage /></FormItem>
