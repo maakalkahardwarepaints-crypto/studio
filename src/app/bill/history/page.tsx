@@ -6,10 +6,10 @@ import { collection, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, AlertCircle, Eye, Trash2 } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, Trash2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { JMKTradingLogo } from '@/components/icons';
+import { Header } from '@/components/header';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,9 +40,10 @@ export default function BillHistoryPage() {
 
   const sortedBills = useMemo(() => {
     if (!bills) return [];
+    // Sort by server timestamp if available, otherwise fall back to JS date
     return [...bills].sort((a, b) => {
-      const dateA = a.createdAt?.toDate() || 0;
-      const dateB = b.createdAt?.toDate() || 0;
+      const dateA = a.createdAt?.toDate() || (a.date ? new Date(a.date.seconds * 1000) : 0);
+      const dateB = b.createdAt?.toDate() || (b.date ? new Date(b.date.seconds * 1000) : 0);
       return dateB - dateA;
     });
   }, [bills]);
@@ -132,31 +133,30 @@ export default function BillHistoryPage() {
   return (
     <AlertDialog open={!!billToDelete} onOpenChange={(isOpen) => !isOpen && setBillToDelete(null)}>
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
-          <div className="container mx-auto flex h-16 items-center justify-between px-4">
-            <Link href="/" className="flex items-center gap-2">
-              <JMKTradingLogo className="h-8 w-8" />
-              <span className="font-bold text-foreground">JMK Trading</span>
-            </Link>
-            <Button asChild>
-              <Link href="/create-bill">Create New Bill</Link>
-            </Button>
-          </div>
-        </header>
+        <Header />
         <main className="container mx-auto p-4 md:p-8">
           <Card>
-            <CardHeader>
-              <CardTitle>Bill History</CardTitle>
-              <CardDescription>A list of all your saved bills.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Bill History</CardTitle>
+                <CardDescription>A list of all your saved bills.</CardDescription>
+              </div>
+               <Button asChild>
+                 <Link href="/create-bill"><Plus className="mr-2 h-4 w-4" /> Create Bill</Link>
+               </Button>
             </CardHeader>
             <CardContent>
-              {sortedBills.length > 0 ? (
+              {isLoadingBills ? (
+                 <div className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                 </div>
+              ) : sortedBills.length > 0 ? (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Bill #</TableHead>
-                        <TableHead>Client Name</TableHead>
+                        <TableHead className="hidden sm:table-cell">Bill #</TableHead>
+                        <TableHead>Client</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         <TableHead className="text-center">Actions</TableHead>
@@ -165,8 +165,11 @@ export default function BillHistoryPage() {
                     <TableBody>
                       {sortedBills.map((bill) => (
                         <TableRow key={bill.id}>
-                          <TableCell className="font-medium">{bill.billNumber}</TableCell>
-                          <TableCell>{bill.clientName}</TableCell>
+                          <TableCell className="font-medium hidden sm:table-cell">{bill.billNumber}</TableCell>
+                          <TableCell>
+                              <div className="font-medium">{bill.clientName}</div>
+                              <div className="text-muted-foreground text-xs sm:hidden">{bill.billNumber}</div>
+                          </TableCell>
                           <TableCell>
                             {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
                           </TableCell>

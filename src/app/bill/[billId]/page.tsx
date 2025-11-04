@@ -3,12 +3,11 @@
 import { useMemo, useState, use, useRef } from 'react';
 import { useUser, useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { Loader2, AlertCircle, QrCode, Share2, Download, RotateCw } from 'lucide-react';
+import { Loader2, AlertCircle, QrCode, Share2, Download, RotateCw, ArrowLeft } from 'lucide-react';
 import { BillPreview } from '@/components/bill-preview';
 import type { BillFormValues } from '@/lib/schemas';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { JMKTradingLogo } from '@/components/icons';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -30,6 +29,8 @@ import html2canvas from "html2canvas";
 import { useToast } from '@/hooks/use-toast';
 import { format } from "date-fns";
 import { cn } from '@/lib/utils';
+import { Header } from '@/components/header';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 interface BillPageProps {
@@ -45,6 +46,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [isQrCodeOpen, setIsQrCodeOpen] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [isRotated, setIsRotated] = useState(false);
@@ -90,6 +92,8 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
     try {
       const canvas = await html2canvas(element, {
         scale: 2,
+        useCORS: true, 
+        allowTaint: true,
       });
       const data = canvas.toDataURL("image/png");
 
@@ -102,6 +106,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
       pdf.addImage(data, "PNG", 0, 0, canvas.width, canvas.height);
       pdf.save(`bill-${bill?.billNumber}.pdf`);
     } catch (e) {
+      console.error(e)
       toast({ title: "Error", description: "Failed to generate PDF.", variant: "destructive" });
     } finally {
       setIsDownloadingPdf(false);
@@ -239,59 +244,107 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
     );
   }
 
+  const DesktopHeader = () => (
+    <div className="flex justify-between items-center">
+        <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+              <Link href="/bill/history"><ArrowLeft /></Link>
+            </Button>
+            <h1 className="text-lg font-semibold">Bill #{bill.billNumber}</h1>
+        </div>
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={() => setIsRotated(!isRotated)}>
+          <RotateCw className="mr-2 h-4 w-4" />
+          Rotate
+        </Button>
+        <Button variant="outline" onClick={() => setIsQrCodeOpen(true)}>
+          <QrCode className="mr-2 h-4 w-4" />
+          QR Code
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <Share2 className="mr-2 h-4 w-4" /> Share
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onSelect={handleDownloadPdf} disabled={isDownloadingPdf}>
+              {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              Download as PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleExportCsv}>Export as CSV</DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleShareWhatsApp}>Share via WhatsApp</DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleShareEmail}>Share via Email</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Button asChild>
+          <Link href="/create-bill">Create New Bill</Link>
+        </Button>
+      </div>
+    </div>
+  );
+
+  const MobileToolbar = () => (
+     <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t p-2 flex justify-around items-center z-50">
+        <Button variant="ghost" className="flex flex-col h-auto p-1" onClick={() => setIsRotated(!isRotated)}>
+            <RotateCw />
+            <span className="text-xs">Rotate</span>
+        </Button>
+        <Button variant="ghost" className="flex flex-col h-auto p-1" onClick={() => setIsQrCodeOpen(true)}>
+            <QrCode />
+            <span className="text-xs">QR Code</span>
+        </Button>
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex flex-col h-auto p-1">
+                    <Share2 />
+                    <span className="text-xs">Share</span>
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="center">
+                <DropdownMenuItem onSelect={handleDownloadPdf} disabled={isDownloadingPdf}>
+                    {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                    PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleExportCsv}>CSV</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleShareWhatsApp}>WhatsApp</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleShareEmail}>Email</DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </div>
+  );
+
+
   return (
     <>
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 sm:p-8">
-        <header className="max-w-4xl mx-auto mb-4">
-          <div className="flex justify-between items-center">
-              <Link href="/" className="flex items-center gap-2">
-                  <JMKTradingLogo className="h-8 w-8" />
-                  <span className="font-bold text-foreground">JMK Trading</span>
-              </Link>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsRotated(!isRotated)}>
-                <RotateCw className="mr-2 h-4 w-4" />
-                Rotate
-              </Button>
-              <Button variant="outline" onClick={() => setIsQrCodeOpen(true)}>
-                <QrCode className="mr-2 h-4 w-4" />
-                QR Code
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <Share2 className="mr-2 h-4 w-4" /> Share
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onSelect={handleDownloadPdf} disabled={isDownloadingPdf}>
-                    {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                    Download as PDF
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={handleExportCsv}>Export as CSV</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={handleShareWhatsApp}>Share via WhatsApp</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={handleShareEmail}>Share via Email</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button asChild variant="outline">
-                <Link href="/bill/history">View History</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/create-bill">Create New Bill</Link>
-              </Button>
-            </div>
-          </div>
-        </header>
+      <Header />
+      <main className="bg-muted/40 dark:bg-muted/10 p-2 sm:p-6 pb-24 sm:pb-8">
+         {!isMobile && (
+          <header className="max-w-6xl mx-auto mb-4 bg-background p-4 rounded-lg shadow-sm border">
+            <DesktopHeader />
+          </header>
+         )}
+
         <div 
-          ref={printRef}
           className={cn(
-            "transform transition-transform duration-500",
-            isRotated && "rotate-90"
+            "max-w-4xl mx-auto transform-gpu transition-transform duration-300 origin-center",
+            isRotated ? (isMobile ? 'rotate-90 scale-75' : 'rotate-90') : ''
           )}
+          style={{
+             ...(isRotated && isMobile && {
+                // Adjust translation to keep it centered when rotated on mobile
+                transform: `rotate(90deg) scale(0.6) translateY(-25%) translateX(15%)`,
+                transformOrigin: 'center center'
+             })
+          }}
         >
-          <BillPreview bill={bill} />
+          <div ref={printRef} className="shadow-lg">
+            <BillPreview bill={bill} />
+          </div>
         </div>
-      </div>
+      </main>
+
+      {isMobile && <MobileToolbar />}
 
       <AlertDialog open={isQrCodeOpen} onOpenChange={setIsQrCodeOpen}>
           <AlertDialogContent>
@@ -312,5 +365,3 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
     </>
   );
 }
-
-    

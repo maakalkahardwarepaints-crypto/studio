@@ -3,6 +3,7 @@ import { BillFormValues } from "@/lib/schemas";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface BillPreviewProps {
   bill: BillFormValues;
@@ -17,39 +18,42 @@ export function BillPreview({ bill }: BillPreviewProps) {
   const totalAmount = subtotal - discountAmount;
 
   return (
-    <div className="bg-white text-black p-4 sm:p-8 rounded-lg max-w-4xl mx-auto font-sans text-sm sm:text-base">
+    <div className="bg-white text-black p-4 sm:p-6 rounded-lg max-w-4xl mx-auto font-sans text-sm print:shadow-none print:rounded-none">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold">{bill.sellerName}</h1>
-          <p className="text-gray-600 text-xs sm:text-sm">{bill.sellerAddress}</p>
-          {bill.sellerShopNumber && <p className="text-gray-600 text-xs sm:text-sm">Contact: {bill.sellerShopNumber}</p>}
-          {bill.sellerOwnerNumber && <p className="text-gray-600 text-xs sm:text-sm">Owner No: {bill.sellerOwnerNumber}</p>}
+      <div className="flex flex-col sm:flex-row justify-between items-start mb-6 gap-4">
+        <div className="flex items-center gap-3">
+           <JMKTradingLogo className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
+           <div>
+              <h1 className="text-lg sm:text-xl font-bold">{bill.sellerName}</h1>
+              <p className="text-gray-600 text-[10px] sm:text-xs max-w-[200px] sm:max-w-xs">{bill.sellerAddress}</p>
+              {bill.sellerShopNumber && <p className="text-gray-600 text-[10px] sm:text-xs">Contact: {bill.sellerShopNumber}</p>}
+              {bill.sellerOwnerNumber && <p className="text-gray-600 text-[10px] sm:text-xs">Owner: {bill.sellerOwnerNumber}</p>}
+           </div>
         </div>
         <div className="text-left sm:text-right w-full sm:w-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold uppercase text-gray-700">Invoice</h2>
-          <p className="text-xs sm:text-sm">Bill #: {bill.billNumber}</p>
-          <p className="text-xs sm:text-sm">Date: {format(bill.date, "PPP")}</p>
+          <h2 className="text-xl sm:text-2xl font-bold uppercase text-gray-700">Invoice</h2>
+          <p className="text-xs">Bill #: <span className="font-medium">{bill.billNumber}</span></p>
+          <p className="text-xs">Date: <span className="font-medium">{format(bill.date, "PPP")}</span></p>
         </div>
       </div>
 
       {/* Client Info */}
-      <div className="mb-8">
-        <h3 className="font-bold text-gray-700 mb-1">Bill To:</h3>
-        <p className="font-bold">{bill.clientName}</p>
-        <p className="text-xs sm:text-sm">{bill.clientAddress}</p>
+      <div className="mb-6 p-3 bg-gray-50 rounded-md">
+        <h3 className="font-bold text-gray-700 mb-1 text-xs">Bill To:</h3>
+        <p className="font-bold text-sm">{bill.clientName}</p>
+        <p className="text-xs text-gray-600">{bill.clientAddress}</p>
       </div>
 
       {/* Items Table */}
       <div className="overflow-x-auto">
-        <Table className="mb-8 min-w-[600px]">
+        <Table className="text-xs sm:text-sm">
           <TableHeader className="bg-gray-100">
             <TableRow>
-              <TableHead className="w-[60px]">S.No</TableHead>
-              <TableHead className="w-[45%]">Item Description</TableHead>
-              <TableHead className="text-right">Quantity</TableHead>
-              <TableHead className="text-right">Rate</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="w-[40px] p-2">S.No</TableHead>
+              <TableHead className="w-[45%] p-2">Item Description</TableHead>
+              <TableHead className="text-right p-2">Qty</TableHead>
+              <TableHead className="text-right p-2">Rate</TableHead>
+              <TableHead className="text-right p-2">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -58,12 +62,12 @@ export function BillPreview({ bill }: BillPreviewProps) {
               const rate = Number(item.rate) || 0;
               const amount = quantity * rate;
               return (
-                <TableRow key={index}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell className="font-medium">{item.itemName}</TableCell>
+                <TableRow key={index} className="[&_td]:p-2">
+                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium break-words">{item.itemName}</TableCell>
                   <TableCell className="text-right">{quantity.toLocaleString()}</TableCell>
                   <TableCell className="text-right">{currency}{(rate).toFixed(2)}</TableCell>
-                  <TableCell className="text-right">{currency}{amount.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-semibold">{currency}{amount.toFixed(2)}</TableCell>
                 </TableRow>
               );
             })}
@@ -73,8 +77,8 @@ export function BillPreview({ bill }: BillPreviewProps) {
 
 
       {/* Total */}
-      <div className="flex justify-end mb-8">
-        <div className="w-full max-w-xs space-y-2">
+      <div className="flex justify-end mt-4 mb-6">
+        <div className="w-full max-w-[250px] space-y-1 text-sm">
           <div className="flex justify-between py-1">
             <span className="font-medium text-gray-600">Subtotal</span>
             <span className="font-medium">{currency}{subtotal.toFixed(2)}</span>
@@ -85,21 +89,21 @@ export function BillPreview({ bill }: BillPreviewProps) {
               <span className="font-medium text-red-600">- {currency}{discountAmount.toFixed(2)}</span>
             </div>
           )}
-          <Separator className="my-2 bg-gray-300"/>
+          <Separator className="my-1 bg-gray-300"/>
           <div className="flex justify-between py-1">
-            <span className="font-bold text-lg sm:text-xl">Total</span>
-            <span className="font-bold text-lg sm:text-xl">{currency}{totalAmount.toFixed(2)}</span>
+            <span className="font-bold text-base sm:text-lg">Total</span>
+            <span className="font-bold text-base sm:text-lg">{currency}{totalAmount.toFixed(2)}</span>
           </div>
         </div>
       </div>
       
       {/* Footer */}
-      <Separator className="my-8 bg-gray-300" />
+      <Separator className="my-4 bg-gray-300" />
       <div className="text-center text-gray-600">
-        <p className="font-bold mb-2">Thank you for your business!</p>
+        <p className="font-bold mb-2 text-sm">Thank you for your business!</p>
         {totalAmount > DISCLAIMER_THRESHOLD && (
-          <p className="text-xs italic">
-            This is not a GST invoice. For bills over ₹{DISCLAIMER_THRESHOLD}, please consult your tax advisor regarding compliance.
+          <p className="text-[10px] italic max-w-md mx-auto">
+            This is not a GST invoice. For bills over {currency}{DISCLAIMER_THRESHOLD}, please consult your tax advisor regarding compliance.
           </p>
         )}
       </div>
