@@ -1,5 +1,6 @@
 import { Header } from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function SettingsPage() {
   return (
@@ -14,12 +15,7 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12">
-              <h3 className="text-xl font-semibold">No Settings Available Yet</h3>
-              <p className="text-muted-foreground mt-2">
-                This page is ready for future customization options.
-              </p>
-            </div>
+            <ThemeToggle />
           </CardContent>
         </Card>
       </main>
