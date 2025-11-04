@@ -3,7 +3,7 @@
 import { useMemo, useState, use, useRef } from 'react';
 import { useUser, useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { Loader2, AlertCircle, QrCode, Share2, Download } from 'lucide-react';
+import { Loader2, AlertCircle, QrCode, Share2, Download, RotateCw } from 'lucide-react';
 import { BillPreview } from '@/components/bill-preview';
 import type { BillFormValues } from '@/lib/schemas';
 import Link from 'next/link';
@@ -29,6 +29,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useToast } from '@/hooks/use-toast';
 import { format } from "date-fns";
+import { cn } from '@/lib/utils';
 
 
 interface BillPageProps {
@@ -46,6 +47,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
   const { toast } = useToast();
   const [isQrCodeOpen, setIsQrCodeOpen] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [isRotated, setIsRotated] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   
   const billUrl = typeof window !== 'undefined' && user ? `${window.location.origin}/public/bill/${user.uid}/${billId}` : '';
@@ -92,7 +94,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
       const data = canvas.toDataURL("image/png");
 
       const pdf = new jsPDF({
-        orientation: "portrait",
+        orientation: isRotated ? "landscape" : "portrait",
         unit: "px",
         format: [canvas.width, canvas.height],
       });
@@ -247,6 +249,10 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
                   <span className="font-bold text-foreground">JMK Trading</span>
               </Link>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setIsRotated(!isRotated)}>
+                <RotateCw className="mr-2 h-4 w-4" />
+                Rotate
+              </Button>
               <Button variant="outline" onClick={() => setIsQrCodeOpen(true)}>
                 <QrCode className="mr-2 h-4 w-4" />
                 QR Code
@@ -276,7 +282,13 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
             </div>
           </div>
         </header>
-        <div ref={printRef}>
+        <div 
+          ref={printRef}
+          className={cn(
+            "transform transition-transform duration-500",
+            isRotated && "rotate-90"
+          )}
+        >
           <BillPreview bill={bill} />
         </div>
       </div>
@@ -300,3 +312,5 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
     </>
   );
 }
+
+    
