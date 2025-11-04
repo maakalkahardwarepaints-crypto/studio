@@ -6,13 +6,13 @@ import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebas
 import { collection, query, getDocs, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown, Calendar, BarChart } from 'lucide-react';
 import { JMKTradingLogo } from '@/components/icons';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
-import { format, startOfDay, startOfMonth, startOfYear } from 'date-fns';
+import { format, startOfDay, startOfMonth, startOfYear, isSameDay, isSameMonth, isSameYear } from 'date-fns';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Header } from '@/components/header';
 
@@ -59,6 +59,10 @@ export default function ProfitLossPage() {
   const [dailyData, setDailyData] = useState<any[]>([]);
   const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [yearlyData, setYearlyData] = useState<any[]>([]);
+  
+  const [dailyProfit, setDailyProfit] = useState(0);
+  const [monthlyProfit, setMonthlyProfit] = useState(0);
+  const [yearlyProfit, setYearlyProfit] = useState(0);
 
   const billsQuery = useMemoFirebase(() => {
     if (!user) return null;
@@ -98,8 +102,6 @@ export default function ProfitLossPage() {
 
     if (bills && firestore) {
         if (bills.length > 0) {
-            // NOTE: This assumes all bills use the same currency.
-            // A more robust solution would handle multiple currencies.
             setCurrency(bills[0].currency || '₹');
         }
 
@@ -114,9 +116,14 @@ export default function ProfitLossPage() {
 
         Promise.all(billItemsPromises).then(billsWithItems => {
             const itemMap = new Map<string, AggregatedItem>();
-            const dailyProfit: { [key: string]: number } = {};
-            const monthlyProfit: { [key: string]: number } = {};
-            const yearlyProfit: { [key: string]: number } = {};
+            const dailyProfitMap: { [key: string]: number } = {};
+            const monthlyProfitMap: { [key: string]: number } = {};
+            const yearlyProfitMap: { [key: string]: number } = {};
+            
+            let todayProfit = 0;
+            let thisMonthProfit = 0;
+            let thisYearProfit = 0;
+            const today = new Date();
 
             billsWithItems.forEach(bill => {
                 let billCost = 0;
@@ -150,15 +157,29 @@ export default function ProfitLossPage() {
                 const billRevenue = bill.totalAmount;
                 const billProfit = billRevenue - billCost;
 
+                if (isSameDay(billDate, today)) {
+                    todayProfit += billProfit;
+                }
+                if (isSameMonth(billDate, today)) {
+                    thisMonthProfit += billProfit;
+                }
+                if (isSameYear(billDate, today)) {
+                    thisYearProfit += billProfit;
+                }
+
                 const dayKey = format(startOfDay(billDate), 'yyyy-MM-dd');
                 const monthKey = format(startOfMonth(billDate), 'yyyy-MM');
                 const yearKey = format(startOfYear(billDate), 'yyyy');
 
-                dailyProfit[dayKey] = (dailyProfit[dayKey] || 0) + billProfit;
-                monthlyProfit[monthKey] = (monthlyProfit[monthKey] || 0) + billProfit;
-                yearlyProfit[yearKey] = (yearlyProfit[yearKey] || 0) + billProfit;
+                dailyProfitMap[dayKey] = (dailyProfitMap[dayKey] || 0) + billProfit;
+                monthlyProfitMap[monthKey] = (monthlyProfitMap[monthKey] || 0) + billProfit;
+                yearlyProfitMap[yearKey] = (yearlyProfitMap[yearKey] || 0) + billProfit;
             });
             
+            setDailyProfit(todayProfit);
+            setMonthlyProfit(thisMonthProfit);
+            setYearlyProfit(thisYearProfit);
+
             const aggregated = Array.from(itemMap.values());
             aggregated.sort((a, b) => b.totalRevenue - a.totalRevenue);
             setAggregatedItems(aggregated);
@@ -183,9 +204,9 @@ export default function ProfitLossPage() {
                 }))
                 .sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-            setDailyData(formatChartData(dailyProfit, 'MMM d'));
-            setMonthlyData(formatChartData(monthlyProfit, 'MMM yyyy'));
-            setYearlyData(formatChartData(yearlyProfit, 'yyyy'));
+            setDailyData(formatChartData(dailyProfitMap, 'MMM d'));
+            setMonthlyData(formatChartData(monthlyProfitMap, 'MMM yyyy'));
+            setYearlyData(formatChartData(yearlyProfitMap, 'yyyy'));
 
             setIsLoading(false);
         }).catch(err => {
@@ -382,6 +403,18 @@ export default function ProfitLossPage() {
     </div>
   );
 
+ const SummaryCard = ({ title, value, isProfit }: { title: string, value: number, isProfit?: boolean}) => (
+    <Card className="text-center">
+        <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <p className={`text-2xl font-bold ${isProfit === undefined ? '' : isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                {title === 'Profit Margin' ? `${value.toFixed(2)}%` : `${currency}${value.toFixed(2)}`}
+            </p>
+        </CardContent>
+    </Card>
+ );
 
   return (
     <div className="min-h-screen bg-background">
@@ -390,50 +423,15 @@ export default function ProfitLossPage() {
         <Card className="mb-8">
             <CardHeader>
                 <CardTitle>Profit &amp; Loss Summary</CardTitle>
-                <CardDescription>An overview of your business performance based on all bills.</CardDescription>
+                <CardDescription>An overview of your business performance.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{currency}{totalRevenue.toFixed(2)}</div>
-                            <p className="text-xs text-muted-foreground">Total amount from all bills (after discounts)</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Cost of Goods</CardTitle>
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{currency}{totalCost.toFixed(2)}</div>
-                             <p className="text-xs text-muted-foreground">Total cost of all items sold</p>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
-                            {totalProfit >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
-                        </CardHeader>
-                        <CardContent>
-                            <div className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{currency}{totalProfit.toFixed(2)}</div>
-                             <p className="text-xs text-muted-foreground">Revenue minus Cost</p>
-                        </CardContent>
-                    </Card>
-                     <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Profit Margin</CardTitle>
-                             {profitMargin >= 0 ? <TrendingUp className="h-4 w-4 text-green-500" /> : <TrendingDown className="h-4 w-4 text-red-500" />}
-                        </CardHeader>
-                        <CardContent>
-                            <div className={`text-2xl font-bold ${profitMargin >= 0 ? 'text-green-600' : 'text-red-600'}`}>{profitMargin.toFixed(2)}%</div>
-                             <p className="text-xs text-muted-foreground">Percentage of revenue that is profit</p>
-                        </CardContent>
-                    </Card>
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                    <SummaryCard title="Daily Profit / Loss" value={dailyProfit} isProfit={dailyProfit >= 0} />
+                    <SummaryCard title="Monthly Profit / Loss" value={monthlyProfit} isProfit={monthlyProfit >= 0} />
+                    <SummaryCard title="Yearly Profit / Loss" value={yearlyProfit} isProfit={yearlyProfit >= 0} />
+                    <SummaryCard title="Net Profit" value={totalProfit} isProfit={totalProfit >= 0}/>
+                    <SummaryCard title="Profit Margin" value={profitMargin} isProfit={profitMargin >= 0}/>
                 </div>
             </CardContent>
         </Card>
@@ -470,5 +468,7 @@ export default function ProfitLossPage() {
     
 
 
+
+    
 
     

@@ -1,3 +1,5 @@
+'use client';
+
 import Link from "next/link";
 import { JMKTradingLogo } from "@/components/icons";
 import { Button } from "@/components/ui/button";
@@ -64,5 +66,3 @@ export function Header() {
     </header>
   );
 }
-
-    
