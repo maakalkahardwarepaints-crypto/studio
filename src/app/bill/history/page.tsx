@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useUser, useCollection, useFirestore, useMemoFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, AlertCircle, Eye, Trash2, Plus } from 'lucide-react';
 import Link from 'next/link';
@@ -22,12 +22,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 
 export default function BillHistoryPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   const [billToDelete, setBillToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -130,6 +132,85 @@ export default function BillHistoryPage() {
     );
   }
 
+  const DesktopView = () => (
+     <div className="overflow-x-auto">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Bill #</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {sortedBills.map((bill) => (
+                    <TableRow key={bill.id}>
+                        <TableCell className="font-medium">{bill.billNumber}</TableCell>
+                        <TableCell>{bill.clientName}</TableCell>
+                        <TableCell>
+                            {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-right">{bill.currency || '₹'}{bill.totalAmount.toFixed(2)}</TableCell>
+                        <TableCell className="text-center">
+                            <Button asChild variant="ghost" size="icon">
+                                <Link href={`/bill/${bill.id}`} aria-label="View Bill">
+                                    <Eye className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" onClick={() => setBillToDelete(bill.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </AlertDialogTrigger>
+                        </TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    </div>
+  );
+
+  const MobileView = () => (
+    <div className="space-y-4">
+        {sortedBills.map((bill) => (
+            <Card key={bill.id}>
+                <CardHeader>
+                    <CardTitle className="text-lg">{bill.clientName}</CardTitle>
+                    <CardDescription>Bill #{bill.billNumber}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-sm text-muted-foreground">Date</p>
+                            <p className="font-medium">{bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p className="text-sm text-muted-foreground text-right">Amount</p>
+                            <p className="font-bold text-lg text-right">{bill.currency || '₹'}{bill.totalAmount.toFixed(2)}</p>
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2 bg-muted/50 p-3">
+                     <Button asChild variant="outline" size="sm">
+                        <Link href={`/bill/${bill.id}`} aria-label="View Bill">
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                        </Link>
+                    </Button>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm" onClick={() => setBillToDelete(bill.id)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                        </Button>
+                    </AlertDialogTrigger>
+                </CardFooter>
+            </Card>
+        ))}
+    </div>
+  );
+
   return (
     <AlertDialog open={!!billToDelete} onOpenChange={(isOpen) => !isOpen && setBillToDelete(null)}>
       <div className="min-h-screen bg-background">
@@ -151,46 +232,7 @@ export default function BillHistoryPage() {
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                  </div>
               ) : sortedBills.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="hidden sm:table-cell">Bill #</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead className="text-center">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {sortedBills.map((bill) => (
-                        <TableRow key={bill.id}>
-                          <TableCell className="font-medium hidden sm:table-cell">{bill.billNumber}</TableCell>
-                          <TableCell>
-                              <div className="font-medium">{bill.clientName}</div>
-                              <div className="text-muted-foreground text-xs sm:hidden">{bill.billNumber}</div>
-                          </TableCell>
-                          <TableCell>
-                            {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
-                          </TableCell>
-                          <TableCell className="text-right">{bill.currency || '₹'}{bill.totalAmount.toFixed(2)}</TableCell>
-                          <TableCell className="text-center">
-                            <Button asChild variant="ghost" size="icon">
-                              <Link href={`/bill/${bill.id}`} aria-label="View Bill">
-                                <Eye className="h-4 w-4" />
-                              </Link>
-                            </Button>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={() => setBillToDelete(bill.id)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </AlertDialogTrigger>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                isMobile ? <MobileView /> : <DesktopView />
               ) : (
                 <div className="text-center py-12">
                   <h3 className="text-xl font-semibold">No Bills Found</h3>
@@ -222,4 +264,5 @@ export default function BillHistoryPage() {
       </AlertDialogContent>
     </AlertDialog>
   );
-}
+
+    
