@@ -26,6 +26,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 export default function BillHistoryPage() {
@@ -35,6 +36,7 @@ export default function BillHistoryPage() {
   const isMobile = useIsMobile();
   const [billToDelete, setBillToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const billsCollection = useMemoFirebase(() => {
     if (!user) return null;
@@ -52,6 +54,13 @@ export default function BillHistoryPage() {
       return dateB - dateA;
     });
   }, [bills]);
+
+  const filteredBills = useMemo(() => {
+    if (statusFilter === 'all') {
+      return sortedBills;
+    }
+    return sortedBills.filter(bill => bill.status === statusFilter);
+  }, [sortedBills, statusFilter]);
 
   const handleDeleteBill = () => {
     if (!user || !firestore || !billToDelete) {
@@ -163,7 +172,7 @@ export default function BillHistoryPage() {
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {sortedBills.map((bill) => (
+                {filteredBills.map((bill) => (
                     <TableRow key={bill.id}>
                         <TableCell className="font-medium">{bill.billNumber}</TableCell>
                         <TableCell>{bill.clientName}</TableCell>
@@ -195,7 +204,7 @@ export default function BillHistoryPage() {
 
   const MobileView = () => (
     <div className="space-y-4">
-        {sortedBills.map((bill) => (
+        {filteredBills.map((bill) => (
             <Card key={bill.id}>
                 <CardHeader>
                     <div className="flex justify-between items-start">
@@ -253,19 +262,27 @@ export default function BillHistoryPage() {
                </Button>
             </CardHeader>
             <CardContent>
+                <Tabs value={statusFilter} onValueChange={setStatusFilter} className="mb-4">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="paid">Paid</TabsTrigger>
+                    <TabsTrigger value="unpaid">Unpaid</TabsTrigger>
+                    <TabsTrigger value="pending">Pending</TabsTrigger>
+                  </TabsList>
+                </Tabs>
               {isLoadingBills ? (
                  <div className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                  </div>
-              ) : sortedBills.length > 0 ? (
+              ) : filteredBills.length > 0 ? (
                 isMobile ? <MobileView /> : <DesktopView />
               ) : (
                 <div className="text-center py-12">
                   <h3 className="text-xl font-semibold">No Bills Found</h3>
-                  <p className="text-muted-foreground mt-2">You haven't saved any bills yet.</p>
-                  <Button asChild className="mt-4">
-                    <Link href="/create-bill">Create Your First Bill</Link>
-                  </Button>
+                  <p className="text-muted-foreground mt-2">No bills match the filter "{statusFilter}".</p>
+                  {statusFilter !== 'all' && (
+                    <Button variant="link" onClick={() => setStatusFilter('all')}>View all bills</Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -294,3 +311,4 @@ export default function BillHistoryPage() {
     
 
     
+
