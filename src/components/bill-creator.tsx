@@ -752,7 +752,7 @@ export function BillCreator() {
                   {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
                   Download as PDF
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={handleExportCsv}>As Excel (CSV)</DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleExportCsv}>Export as CSV</DropdownMenuItem>
                 <DropdownMenuItem onSelect={handleShareWhatsApp}>Via WhatsApp</DropdownMenuItem>
                 <DropdownMenuItem onSelect={handleShareEmail}>Via Email</DropdownMenuItem>
               </DropdownMenuContent>

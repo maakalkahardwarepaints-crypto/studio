@@ -261,6 +261,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
           <QrCode className="mr-2 h-4 w-4" />
           QR Code
         </Button>
+        <Button variant="outline" onClick={handleExportCsv}>Export as CSV</Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline">
@@ -272,7 +273,6 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
               {isDownloadingPdf ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
               Download as PDF
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleExportCsv}>Export as CSV</DropdownMenuItem>
             <DropdownMenuItem onSelect={handleShareWhatsApp}>Share via WhatsApp</DropdownMenuItem>
             <DropdownMenuItem onSelect={handleShareEmail}>Share via Email</DropdownMenuItem>
           </DropdownMenuContent>
