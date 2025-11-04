@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -104,6 +105,8 @@ export function BillCreator() {
       sellerOwnerNumber: "7479633348",
       clientName: "",
       clientAddress: "",
+      clientPhone: "",
+      clientEmail: "",
       billNumber: "",
       date: new Date(),
       items: [{ itemName: "", quantity: 1, rate: 0, cost: 0 }],
@@ -262,6 +265,8 @@ export function BillCreator() {
       sellerAddress: billData.sellerAddress,
       clientName: billData.clientName,
       clientAddress: billData.clientAddress,
+      clientPhone: billData.clientPhone,
+      clientEmail: billData.clientEmail,
       billNumber: billData.billNumber,
       date: billData.date,
       totalAmount,
@@ -512,6 +517,8 @@ export function BillCreator() {
                                     onSelect={() => {
                                       form.setValue("clientName", client.name);
                                       form.setValue("clientAddress", client.address);
+                                      form.setValue("clientPhone", client.phone);
+                                      form.setValue("clientEmail", client.email);
                                       setIsClientPopoverOpen(false);
                                     }}
                                   >
@@ -526,6 +533,8 @@ export function BillCreator() {
                                     value={watchClientName}
                                     onSelect={() => {
                                       form.setValue("clientAddress", ""); // Clear address for new client
+                                      form.setValue("clientPhone", "");
+                                      form.setValue("clientEmail", "");
                                       setIsClientPopoverOpen(false);
                                     }}
                                   >
@@ -544,6 +553,14 @@ export function BillCreator() {
               <FormField name="clientAddress" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Client Address</FormLabel><FormControl><Textarea placeholder="456 Client Ave, Othertown, USA" {...field} /></FormControl><FormMessage /></FormItem>
               )} />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField name="clientPhone" control={form.control} render={({ field }) => (
+                    <FormItem><FormLabel>Client Phone (Optional)</FormLabel><FormControl><Input placeholder="+1 555-1234" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField name="clientEmail" control={form.control} render={({ field }) => (
+                    <FormItem><FormLabel>Client Email (Optional)</FormLabel><FormControl><Input placeholder="client@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField name="billNumber" control={form.control} render={({ field }) => (
                     <FormItem><FormLabel>Bill Number</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>

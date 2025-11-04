@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const clientSchema = z.object({
@@ -25,6 +26,8 @@ export const billFormSchema = z.object({
   sellerOwnerNumber: z.string().optional().default("7479633348"),
   clientName: z.string().min(1, "Client name is required."),
   clientAddress: z.string().min(1, "Client address is required."),
+  clientPhone: z.string().optional(),
+  clientEmail: z.string().email("Invalid email address.").optional().or(z.literal('')),
   billNumber: z.string().min(1, "Bill number is required."),
   date: z.date(),
   items: z.array(billItemSchema).min(1, "Please add at least one item."),

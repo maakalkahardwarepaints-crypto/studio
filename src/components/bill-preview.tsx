@@ -1,3 +1,4 @@
+
 import { JMKTradingLogo } from "@/components/icons";
 import { BillFormValues } from "@/lib/schemas";
 import { Separator } from "@/components/ui/separator";
@@ -42,6 +43,8 @@ export function BillPreview({ bill }: BillPreviewProps) {
         <h3 className="font-bold text-gray-700 mb-1 text-xs">Bill To:</h3>
         <p className="font-bold text-sm">{bill.clientName}</p>
         <p className="text-xs text-gray-600">{bill.clientAddress}</p>
+        {bill.clientPhone && <p className="text-xs text-gray-600">Phone: {bill.clientPhone}</p>}
+        {bill.clientEmail && <p className="text-xs text-gray-600">Email: {bill.clientEmail}</p>}
       </div>
 
       {/* Items Table */}
