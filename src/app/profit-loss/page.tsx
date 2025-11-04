@@ -4,7 +4,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, getDocs, where } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, AlertCircle, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
 import { JMKTradingLogo } from '@/components/icons';
@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { format, startOfDay, startOfMonth, startOfYear } from 'date-fns';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Header } from '@/components/header';
 
 interface Item {
   id: string;
@@ -43,6 +45,7 @@ interface AggregatedItem {
 export default function ProfitLossPage() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const isMobile = useIsMobile();
 
   const [aggregatedItems, setAggregatedItems] = useState<AggregatedItem[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -267,7 +270,8 @@ export default function ProfitLossPage() {
                 />
                  <YAxis
                       tickFormatter={(value) => `${currency}${value}`}
-                      width={80}
+                      width={isMobile ? 60 : 80}
+                      tick={{ fontSize: 12 }}
                   />
                 <Tooltip
                   content={({ active, payload, label }) => {
@@ -322,25 +326,66 @@ export default function ProfitLossPage() {
       </Card>
     );
   };
+  
+  const DesktopItemsTable = () => (
+     <div className="overflow-x-auto">
+        <Table>
+        <TableHeader>
+            <TableRow>
+            <TableHead>Item Name</TableHead>
+            <TableHead className="text-right">Total Quantity Sold</TableHead>
+            <TableHead className="text-right">Total Revenue</TableHead>
+            <TableHead className="text-right">Total Cost</TableHead>
+            <TableHead className="text-right">Total Profit</TableHead>
+            </TableRow>
+        </TableHeader>
+        <TableBody>
+            {aggregatedItems.map((item) => (
+                <TableRow key={item.id}>
+                <TableCell className="font-medium">{item.itemName}</TableCell>
+                <TableCell className="text-right">{item.quantity}</TableCell>
+                <TableCell className="text-right">{item.currency}{item.totalRevenue.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{item.currency}{item.totalCost.toFixed(2)}</TableCell>
+                <TableCell className={`text-right font-semibold ${item.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{item.currency}{item.totalProfit.toFixed(2)}</TableCell>
+                </TableRow>
+            ))}
+        </TableBody>
+        </Table>
+    </div>
+  );
+
+  const MobileItemsList = () => (
+    <div className="space-y-4">
+        {aggregatedItems.map(item => (
+            <Card key={item.id}>
+                <CardHeader className="pb-4">
+                    <CardTitle className="text-lg">{item.itemName}</CardTitle>
+                    <CardDescription>Total Quantity Sold: {item.quantity}</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                    <div className="text-muted-foreground">Total Revenue</div>
+                    <div className="text-right font-medium">{item.currency}{item.totalRevenue.toFixed(2)}</div>
+
+                    <div className="text-muted-foreground">Total Cost</div>
+                    <div className="text-right font-medium">{item.currency}{item.totalCost.toFixed(2)}</div>
+                </CardContent>
+                 <CardFooter className="bg-muted/50 p-3 mt-4">
+                     <div className="flex justify-between items-center w-full">
+                        <span className="font-bold text-base">Total Profit</span>
+                        <span className={`font-bold text-base ${item.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {item.currency}{item.totalProfit.toFixed(2)}
+                        </span>
+                    </div>
+                </CardFooter>
+            </Card>
+        ))}
+    </div>
+  );
+
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <JMKTradingLogo className="h-8 w-8" />
-            <span className="font-bold text-foreground">JMK Trading</span>
-          </Link>
-          <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link href="/bill/history">View History</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/create-bill">Create New Bill</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Header />
       <main className="container mx-auto p-4 md:p-8">
         <Card className="mb-8">
             <CardHeader>
@@ -348,7 +393,7 @@ export default function ProfitLossPage() {
                 <CardDescription>An overview of your business performance based on all bills.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -406,30 +451,7 @@ export default function ProfitLossPage() {
             </CardHeader>
             <CardContent>
              {aggregatedItems && aggregatedItems.length > 0 ? (
-                <div className="overflow-x-auto">
-                    <Table>
-                    <TableHeader>
-                        <TableRow>
-                        <TableHead>Item Name</TableHead>
-                        <TableHead className="text-right">Total Quantity Sold</TableHead>
-                        <TableHead className="text-right">Total Revenue</TableHead>
-                        <TableHead className="text-right">Total Cost</TableHead>
-                        <TableHead className="text-right">Total Profit</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {aggregatedItems.map((item) => (
-                            <TableRow key={item.id}>
-                            <TableCell className="font-medium">{item.itemName}</TableCell>
-                            <TableCell className="text-right">{item.quantity}</TableCell>
-                            <TableCell className="text-right">{item.currency}{item.totalRevenue.toFixed(2)}</TableCell>
-                            <TableCell className="text-right">{item.currency}{item.totalCost.toFixed(2)}</TableCell>
-                            <TableCell className={`text-right font-semibold ${item.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{item.currency}{item.totalProfit.toFixed(2)}</TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                    </Table>
-                </div>
+                isMobile ? <MobileItemsList /> : <DesktopItemsTable />
                  ) : (
                 <div className="text-center py-12">
                   <h3 className="text-xl font-semibold">No Items Found</h3>
@@ -447,3 +469,6 @@ export default function ProfitLossPage() {
 
     
 
+
+
+    
