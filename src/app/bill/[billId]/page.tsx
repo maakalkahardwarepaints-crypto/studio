@@ -3,7 +3,7 @@
 import { useMemo, useState, use, useRef } from 'react';
 import { useUser, useDoc, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { Loader2, AlertCircle, QrCode, Share2, Download, RotateCw, ArrowLeft } from 'lucide-react';
+import { Loader2, AlertCircle, QrCode, Share2, Download, ArrowLeft } from 'lucide-react';
 import { BillPreview } from '@/components/bill-preview';
 import type { BillFormValues } from '@/lib/schemas';
 import Link from 'next/link';
@@ -49,7 +49,6 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
   const isMobile = useIsMobile();
   const [isQrCodeOpen, setIsQrCodeOpen] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-  const [isRotated, setIsRotated] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   
   const billUrl = typeof window !== 'undefined' && user ? `${window.location.origin}/public/bill/${user.uid}/${billId}` : '';
@@ -98,7 +97,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
       const data = canvas.toDataURL("image/png");
 
       const pdf = new jsPDF({
-        orientation: isRotated ? "landscape" : "portrait",
+        orientation: "portrait",
         unit: "px",
         format: [canvas.width, canvas.height],
       });
@@ -253,10 +252,6 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
             <h1 className="text-lg font-semibold">Bill #{bill.billNumber}</h1>
         </div>
       <div className="flex gap-2">
-        <Button variant="outline" onClick={() => setIsRotated(!isRotated)}>
-          <RotateCw className="mr-2 h-4 w-4" />
-          Rotate
-        </Button>
         <Button variant="outline" onClick={() => setIsQrCodeOpen(true)}>
           <QrCode className="mr-2 h-4 w-4" />
           QR Code
@@ -286,10 +281,6 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
 
   const MobileToolbar = () => (
      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t p-2 flex justify-around items-center z-50">
-        <Button variant="ghost" className="flex flex-col h-auto p-1" onClick={() => setIsRotated(!isRotated)}>
-            <RotateCw />
-            <span className="text-xs">Rotate</span>
-        </Button>
         <Button variant="ghost" className="flex flex-col h-auto p-1" onClick={() => setIsQrCodeOpen(true)}>
             <QrCode />
             <span className="text-xs">QR Code</span>
@@ -325,19 +316,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
           </header>
          )}
 
-        <div 
-          className={cn(
-            "max-w-4xl mx-auto transform-gpu transition-transform duration-300 origin-center",
-            isRotated ? (isMobile ? 'rotate-90 scale-75' : 'rotate-90') : ''
-          )}
-          style={{
-             ...(isRotated && isMobile && {
-                // Adjust translation to keep it centered when rotated on mobile
-                transform: `rotate(90deg) scale(0.6) translateY(-25%) translateX(15%)`,
-                transformOrigin: 'center center'
-             })
-          }}
-        >
+        <div className="max-w-4xl mx-auto">
           <div ref={printRef} className="shadow-lg">
             <BillPreview bill={bill} />
           </div>
