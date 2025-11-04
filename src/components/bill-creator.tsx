@@ -112,6 +112,7 @@ export function BillCreator() {
       discount: 0,
       currency: "₹",
       aiSummary: "",
+      status: "unpaid",
     },
     mode: "onBlur",
   });
@@ -274,6 +275,7 @@ export function BillCreator() {
       discount: billData.discount || 0,
       currency: billData.currency,
       aiSummary: billData.aiSummary || "",
+      status: billData.status,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -365,7 +367,8 @@ export function BillCreator() {
     let message = `*Invoice from ${billData.sellerName}*\n\n`;
     message += `Bill To: ${billData.clientName}\n`;
     message += `Bill #: ${billData.billNumber}\n`;
-    message += `Date: ${format(billData.date, "PPP")}\n\n`;
+    message += `Date: ${format(billData.date, "PPP")}\n`;
+    message += `Status: *${billData.status.toUpperCase()}*\n\n`;
     message += "*Items:*\n";
     billData.items.forEach(item => {
       const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
@@ -392,7 +395,8 @@ export function BillCreator() {
     const subject = `Invoice from ${billData.sellerName} - Bill #${billData.billNumber}`;
     let body = `Hello ${billData.clientName},\n\nPlease find your invoice details below:\n\n`;
     body += `Bill #: ${billData.billNumber}\n`;
-    body += `Date: ${format(billData.date, "PPP")}\n\n`;
+    body += `Date: ${format(billData.date, "PPP")}\n`;
+    body += `Status: ${billData.status.toUpperCase()}\n\n`;
     body += "----------------------------------------\n";
     billData.items.forEach(item => {
         const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
@@ -585,6 +589,28 @@ export function BillCreator() {
                   </FormItem>
                 )} />
               </div>
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bill Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select bill status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="unpaid">Unpaid</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
         </div>

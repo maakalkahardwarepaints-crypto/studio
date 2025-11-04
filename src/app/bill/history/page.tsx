@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -6,6 +7,7 @@ import { collection, doc, deleteDoc, getDocs } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertCircle, Eye, Trash2, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -23,6 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 
 export default function BillHistoryPage() {
@@ -132,6 +135,20 @@ export default function BillHistoryPage() {
     );
   }
 
+  const StatusBadge = ({ status }: { status?: string }) => {
+    if (!status) return null;
+    const statusStyles = {
+        paid: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700',
+        unpaid: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-700',
+        pending: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-700',
+    };
+    return (
+      <Badge variant="outline" className={cn("capitalize", statusStyles[status as keyof typeof statusStyles])}>
+        {status}
+      </Badge>
+    );
+  };
+
   const DesktopView = () => (
      <div className="overflow-x-auto">
         <Table>
@@ -140,6 +157,7 @@ export default function BillHistoryPage() {
                     <TableHead>Bill #</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
@@ -151,6 +169,9 @@ export default function BillHistoryPage() {
                         <TableCell>{bill.clientName}</TableCell>
                         <TableCell>
                             {bill.date ? format(new Date(bill.date.seconds * 1000), 'PPP') : 'N/A'}
+                        </TableCell>
+                         <TableCell>
+                           <StatusBadge status={bill.status} />
                         </TableCell>
                         <TableCell className="text-right">{bill.currency || '₹'}{bill.totalAmount.toFixed(2)}</TableCell>
                         <TableCell className="text-center">
@@ -177,8 +198,13 @@ export default function BillHistoryPage() {
         {sortedBills.map((bill) => (
             <Card key={bill.id}>
                 <CardHeader>
-                    <CardTitle className="text-lg">{bill.clientName}</CardTitle>
-                    <CardDescription>Bill #{bill.billNumber}</CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle className="text-lg">{bill.clientName}</CardTitle>
+                            <CardDescription>Bill #{bill.billNumber}</CardDescription>
+                        </div>
+                        <StatusBadge status={bill.status} />
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="flex justify-between items-center">

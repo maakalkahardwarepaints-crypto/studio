@@ -160,6 +160,11 @@
           "type": "string",
           "description": "URL of the company logo used in the bill.",
           "format": "uri"
+        },
+        "status": {
+          "type": "string",
+          "description": "The payment status of the bill.",
+          "enum": ["paid", "unpaid", "pending"]
         }
       },
       "required": [
@@ -169,7 +174,8 @@
         "billNumber",
         "date",
         "itemIds",
-        "totalAmount"
+        "totalAmount",
+        "status"
       ]
     }
   },

@@ -79,6 +79,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
       items: itemsData,
       currency: billData.currency || "₹",
       aiSummary: billData.aiSummary || "",
+      status: billData.status || "unpaid",
     } as BillFormValues;
   }, [billData, itemsData]);
 
@@ -158,7 +159,8 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
     let message = `*Invoice from ${bill.sellerName}*\n\n`;
     message += `Bill To: ${bill.clientName}\n`;
     message += `Bill #: ${bill.billNumber}\n`;
-    message += `Date: ${format(bill.date, "PPP")}\n\n`;
+    message += `Date: ${format(bill.date, "PPP")}\n`;
+    message += `Status: *${bill.status.toUpperCase()}*\n\n`;
     message += "*Items:*\n";
     bill.items.forEach(item => {
       const amount = (Number(item.quantity) || 0) * (Number(item.rate) || 0);
@@ -189,7 +191,8 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
     const subject = `Invoice from ${bill.sellerName} - Bill #${bill.billNumber}`;
     let body = `Hello ${bill.clientName},\n\nPlease find your invoice details below:\n\n`;
     body += `Bill #: ${bill.billNumber}\n`;
-    body += `Date: ${format(bill.date, "PPP")}\n\n`;
+    body += `Date: ${format(bill.date, "PPP")}\n`;
+    body += `Status: ${bill.status.toUpperCase()}\n\n`;
     body += `You can also view the full bill online here: ${billUrl}\n\n`;
     body += "----------------------------------------\n";
     bill.items.forEach(item => {

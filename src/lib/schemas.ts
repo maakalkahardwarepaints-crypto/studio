@@ -34,6 +34,7 @@ export const billFormSchema = z.object({
   discount: z.coerce.number().min(0, "Discount cannot be negative.").max(100, "Discount cannot exceed 100%.").default(0).optional(),
   currency: z.string().default("₹"),
   aiSummary: z.string().optional(),
+  status: z.enum(["paid", "unpaid", "pending"]).default("unpaid"),
 });
 
 export type BillFormValues = z.infer<typeof billFormSchema>;
