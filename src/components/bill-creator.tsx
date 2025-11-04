@@ -70,7 +70,6 @@ export function BillCreator() {
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
-  const [summary, setSummary] = useState("");
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
@@ -112,6 +111,7 @@ export function BillCreator() {
       items: [{ itemName: "", quantity: 1, rate: 0, cost: 0 }],
       discount: 0,
       currency: "₹",
+      aiSummary: "",
     },
     mode: "onBlur",
   });
@@ -152,6 +152,7 @@ export function BillCreator() {
   const watchDiscount = form.watch("discount");
   const watchCurrency = form.watch("currency");
   const watchClientName = form.watch("clientName");
+  const watchSummary = form.watch("aiSummary");
 
   const subtotal = watchItems.reduce((acc, current) => {
     const quantity = parseFloat(String(current.quantity)) || 0;
@@ -198,7 +199,7 @@ export function BillCreator() {
     }
 
     setIsSummaryLoading(true);
-    setSummary("");
+    form.setValue("aiSummary", "");
 
     const result = await getBillSummaryAction(form.getValues());
 
@@ -209,7 +210,7 @@ export function BillCreator() {
         variant: "destructive",
       });
     } else {
-      setSummary(result.summary);
+      form.setValue("aiSummary", result.summary);
       setIsSummaryDialogOpen(true);
     }
     setIsSummaryLoading(false);
@@ -272,6 +273,7 @@ export function BillCreator() {
       totalAmount,
       discount: billData.discount || 0,
       currency: billData.currency,
+      aiSummary: billData.aiSummary || "",
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -817,7 +819,7 @@ export function BillCreator() {
                 <AlertDialogHeader>
                     <AlertDialogTitle>AI Bill Summary</AlertDialogTitle>
                     <AlertDialogDescription className="text-foreground">
-                        {summary}
+                        {watchSummary}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

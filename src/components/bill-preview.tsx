@@ -100,6 +100,19 @@ export function BillPreview({ bill }: BillPreviewProps) {
         </div>
       </div>
       
+       {/* AI Summary */}
+      {bill.aiSummary && (
+        <div className="mb-6">
+          <Separator className="my-4 bg-gray-300" />
+          <div className="p-3 bg-gray-50 rounded-md">
+            <h3 className="font-bold text-gray-700 mb-2 text-xs">AI-Generated Summary</h3>
+            <p className="text-xs italic text-gray-600">
+                {bill.aiSummary}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Footer */}
       <Separator className="my-4 bg-gray-300" />
       <div className="text-center text-gray-600">

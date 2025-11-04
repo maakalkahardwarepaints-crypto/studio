@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState, use, useRef } from 'react';
@@ -77,6 +78,7 @@ export default function BillPage({ params: paramsProp }: BillPageProps) {
       date: billData.date ? new Date(billData.date.seconds * 1000) : new Date(),
       items: itemsData,
       currency: billData.currency || "₹",
+      aiSummary: billData.aiSummary || "",
     } as BillFormValues;
   }, [billData, itemsData]);
 
