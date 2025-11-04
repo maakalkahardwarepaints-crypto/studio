@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { JMKTradingLogo } from "@/components/icons";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
 
 export function Header() {
   return (
@@ -9,6 +11,12 @@ export function Header() {
           <JMKTradingLogo className="h-8 w-8" />
           <span className="font-bold text-foreground">JMK Trading</span>
         </Link>
+        <Button variant="ghost" size="icon" asChild>
+            <Link href="/settings">
+                <Settings />
+                <span className="sr-only">Settings</span>
+            </Link>
+        </Button>
       </div>
     </header>
   );
