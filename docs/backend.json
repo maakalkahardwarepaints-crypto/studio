@@ -50,10 +50,18 @@
         "address": {
           "type": "string",
           "description": "Address of the client."
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the client."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email of the client.",
+          "format": "email"
         }
       },
       "required": [
-        "id",
         "name",
         "address"
       ]
@@ -234,14 +242,18 @@
         }
       },
       {
-        "path": "/clients/{clientId}",
+        "path": "/users/{userId}/clients/{clientId}",
         "definition": {
           "entityName": "Client",
           "schema": {
             "$ref": "#/backend/entities/Client"
           },
-          "description": "Stores client information. The client's data is public, so all users can see all clients' data. The client's ID is also stored inside each bill for a particular user, so the client information does not need to be denormalized for each bill.",
+          "description": "Stores client information for a specific user.",
           "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
             {
               "name": "clientId",
               "description": "The unique identifier for the client."

@@ -3,12 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BillFormValues, billFormSchema } from "@/lib/schemas";
+import { BillFormValues, billFormSchema, type Client } from "@/lib/schemas";
 import { getBillSummaryAction } from "@/lib/actions";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -16,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Loader2, Plus, Share2, Trash2, FileText, BrainCircuit, Download, History, Percent, DollarSign } from "lucide-react";
+import { CalendarIcon, Loader2, Plus, Share2, Trash2, FileText, BrainCircuit, Download, History, Percent, DollarSign, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { BillPreview } from "./bill-preview";
 import {
@@ -34,7 +35,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser, useAuth, useFirestore, errorEmitter, FirestorePermissionError } from "@/firebase";
+import { useUser, useAuth, useFirestore, errorEmitter, FirestorePermissionError, useCollection, useMemoFirebase } from "@/firebase";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -73,6 +74,7 @@ export function BillCreator() {
   const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const [selectedCompany, setSelectedCompany] = useState<string>("JMK Trading");
+  const [isClientPopoverOpen, setIsClientPopoverOpen] = useState(false);
 
   const { toast } = useToast();
   const { user, isUserLoading } = useUser();
@@ -80,6 +82,12 @@ export function BillCreator() {
   const firestore = useFirestore();
   const router = useRouter();
 
+  const clientsCollection = useMemoFirebase(() => {
+    if (!user) return null;
+    return collection(firestore, `users/${user.uid}/clients`);
+  }, [firestore, user]);
+
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsCollection);
 
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -140,6 +148,7 @@ export function BillCreator() {
   const watchItems = form.watch("items");
   const watchDiscount = form.watch("discount");
   const watchCurrency = form.watch("currency");
+  const watchClientName = form.watch("clientName");
 
   const subtotal = watchItems.reduce((acc, current) => {
     const quantity = parseFloat(String(current.quantity)) || 0;
@@ -455,9 +464,72 @@ export function BillCreator() {
               <CardDescription>Enter the client's information.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField name="clientName" control={form.control} render={({ field }) => (
-                <FormItem><FormLabel>Client Name</FormLabel><FormControl><Input placeholder="John Doe" {...field} /></FormControl><FormMessage /></FormItem>
-              )} />
+               <FormField
+                control={form.control}
+                name="clientName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client Name</FormLabel>
+                    <Popover open={isClientPopoverOpen} onOpenChange={setIsClientPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className={cn(
+                              "w-full justify-between",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value
+                              ? clients?.find(
+                                  (client) => client.name === field.value
+                                )?.name
+                              : "Select or type client name"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command shouldFilter={false}>
+                          <CommandInput 
+                            placeholder="Search client..." 
+                            onValueChange={(search) => form.setValue("clientName", search)}
+                            value={watchClientName}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {isLoadingClients ? 'Loading...' : 'No client found.'}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {clients?.filter(client => client.name.toLowerCase().includes(watchClientName.toLowerCase()))
+                                .map((client) => (
+                                <CommandItem
+                                  value={client.name}
+                                  key={client.id}
+                                  onSelect={() => {
+                                    form.setValue("clientName", client.name);
+                                    form.setValue("clientAddress", client.address);
+                                    setIsClientPopoverOpen(false);
+                                  }}
+                                >
+                                  {client.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                             <CommandGroup>
+                                <CommandItem onSelect={() => setIsClientPopoverOpen(false)}>
+                                  Use "{watchClientName}"
+                                </CommandItem>
+                             </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField name="clientAddress" control={form.control} render={({ field }) => (
                 <FormItem><FormLabel>Client Address</FormLabel><FormControl><Textarea placeholder="456 Client Ave, Othertown, USA" {...field} /></FormControl><FormMessage /></FormItem>
               )} />

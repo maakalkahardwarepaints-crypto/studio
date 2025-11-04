@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+export const clientSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(1, "Client name is required."),
+  address: z.string().min(1, "Client address is required."),
+  phone: z.string().optional(),
+  email: z.string().email("Invalid email address.").optional().or(z.literal('')),
+});
+
+export type Client = z.infer<typeof clientSchema>;
+
+
 export const billItemSchema = z.object({
   itemName: z.string().min(1, "Item name is required."),
   quantity: z.coerce.number().min(0.01, "Quantity must be positive."),
@@ -22,7 +33,3 @@ export const billFormSchema = z.object({
 });
 
 export type BillFormValues = z.infer<typeof billFormSchema>;
-
-    
-
-    
