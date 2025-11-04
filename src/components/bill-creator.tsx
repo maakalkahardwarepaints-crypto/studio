@@ -406,6 +406,10 @@ export function BillCreator() {
     window.location.href = mailtoUrl;
   };
 
+  const filteredClients = clients?.filter(client => 
+    client.name.toLowerCase().includes(watchClientName.toLowerCase())
+  );
+
   return (
     <FormProvider {...form}>
       <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
@@ -484,7 +488,7 @@ export function BillCreator() {
                             {field.value
                               ? clients?.find(
                                   (client) => client.name === field.value
-                                )?.name
+                                )?.name ?? field.value
                               : "Select or type client name"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -498,30 +502,37 @@ export function BillCreator() {
                             value={watchClientName}
                           />
                           <CommandList>
-                            <CommandEmpty>
-                              {isLoadingClients ? 'Loading...' : 'No client found.'}
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {clients?.filter(client => client.name.toLowerCase().includes(watchClientName.toLowerCase()))
-                                .map((client) => (
-                                <CommandItem
-                                  value={client.name}
-                                  key={client.id}
-                                  onSelect={() => {
-                                    form.setValue("clientName", client.name);
-                                    form.setValue("clientAddress", client.address);
-                                    setIsClientPopoverOpen(false);
-                                  }}
-                                >
-                                  {client.name}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                             <CommandGroup>
-                                <CommandItem onSelect={() => setIsClientPopoverOpen(false)}>
-                                  Use "{watchClientName}"
-                                </CommandItem>
-                             </CommandGroup>
+                             {(isLoadingClients || !clients) && <CommandEmpty>Loading...</CommandEmpty>}
+                            {filteredClients && filteredClients.length > 0 && (
+                              <CommandGroup heading="Saved Clients">
+                                {filteredClients.map((client) => (
+                                  <CommandItem
+                                    value={client.name}
+                                    key={client.id}
+                                    onSelect={() => {
+                                      form.setValue("clientName", client.name);
+                                      form.setValue("clientAddress", client.address);
+                                      setIsClientPopoverOpen(false);
+                                    }}
+                                  >
+                                    {client.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )}
+                             {watchClientName && (
+                               <CommandGroup>
+                                  <CommandItem
+                                    value={watchClientName}
+                                    onSelect={() => {
+                                      form.setValue("clientAddress", ""); // Clear address for new client
+                                      setIsClientPopoverOpen(false);
+                                    }}
+                                  >
+                                    Use "{watchClientName}"
+                                  </CommandItem>
+                               </CommandGroup>
+                             )}
                           </CommandList>
                         </Command>
                       </PopoverContent>
